@@ -15,6 +15,23 @@ std::ostream &VariantArrayType::print(std::ostream &os) const {
 VariantArrayType::~VariantArrayType() {
     delete (base);
 }
+bool VariantArrayType::equal(const Type &other) const {
+    auto rhs = dynamic_cast<const VariantArrayType &>(other);
+    return *base == *rhs.base;
+}
+Type *VariantArrayType::indexType(std::vector<int>::const_iterator beg,
+                                  std::vector<int>::const_iterator end) {
+    if (beg == end)
+        return this;
+    return base->indexType(beg + 1, end);
+}
+bool VariantArrayType::compatible(const Type &other) const {
+    if (typeid(other) == typeid(ArrayType)) {
+        return *base == *dynamic_cast<const ArrayType &>(other).base;
+    } else {
+        return *this == other;
+    }
+}
 std::ostream &ArrayType::print(std::ostream &os) const {
     os << '[' << width << ']';
     base->print(os);
@@ -24,7 +41,7 @@ std::ostream &FuncType::print(std::ostream &os) const {
     os << '(';
     for (auto p : params)
         p->print(os) << ", ";
-    os << "\b\b)=>";
+    os << ")=>";
     ret->print(os);
     return os;
 }
@@ -37,26 +54,56 @@ FuncType::FuncType(Type *r, const std::vector<Field *> &fs) : ret(r), params() {
     for (auto f :fs)
         params.push_back(f->type);
 }
+bool FuncType::equal(const Type &other) const {
+    auto rhs = dynamic_cast<const FuncType &>(other);
+    if (*rhs.ret != *ret)
+        return false;
+    size_t len = params.size();
+    if (len != rhs.params.size())
+        return false;
+    for (size_t i = 0; i < len; ++i) {
+        if (*params[i] != *rhs.params[i])
+            return false;
+    }
+    return true;
+}
 int IntType::byteSize() const {
     return 4;
+}
+bool IntType::equal(const Type &other) const {
+    return true;
 }
 int ArrayType::byteSize() const {
     int base_size = base->byteSize();
     return base_size < 0 ? base_size : width * base_size;
 }
+bool ArrayType::equal(const Type &other) const {
+    auto rhs = dynamic_cast<const ArrayType &>(other);
+    return width == rhs.width && *base == *rhs.base;
+}
+Type *ArrayType::indexType(std::vector<int>::const_iterator beg,
+                           std::vector<int>::const_iterator end) {
+    if (beg == end)
+        return this;
+    if (*beg >= width)
+        return nullptr;
+    return base->indexType(beg + 1, end);
+}
 std::ostream &operator<<(std::ostream &os, const Field &f) {
     return os << f.id << ": " << *f.type;
-}
-std::string Type::signature() const {
-    std::ostringstream os;
-    print(os);
-    return os.str();
 }
 std::ostream &operator<<(std::ostream &os, const Type &t) {
     return t.print(os);
 }
 bool operator==(const Type &a, const Type &b) {
-    return a.signature() == b.signature();
+    return typeid(a) == typeid(b) && a.equal(b);
+}
+bool operator!=(const Type &a, const Type &b) {
+    return !(a == b);
+}
+Type *
+Type::indexType(std::vector<int>::const_iterator beg, std::vector<int>::const_iterator end) {
+    return beg == end ? this : nullptr;
 }
 
 }; // namespace mc

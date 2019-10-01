@@ -51,6 +51,13 @@ std::vector<AST *> *prog = nullptr;
 
 const char *const BinaryExpr::OpStr[] = {",", "=", "==", "!=", "<", ">", "||",
                                          "&&", "+", "-", "*", "/", "%"};
+bool BinaryExpr::isLhsValue() const {
+    if (opt == BinOp::ASSIGN)
+        return true;
+    else if (opt == BinOp::COMMA)
+        return rhs->isLhsValue();
+    return false;
+}
 
 const char *const UnaryExpr::OpStr[] = {"-", "!"};
 

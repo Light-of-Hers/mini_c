@@ -24,7 +24,7 @@ struct CallExpr;
 struct RefExpr;
 struct NumExpr;
 
-#define VS()                                                                   \
+#define VISITS()                                                                   \
     V(FuncDefn)                                                                \
     V(IfStmt)                                                                  \
     V(WhileStmt)                                                               \
@@ -39,13 +39,13 @@ struct NumExpr;
 
 struct ASTVisitor {
 #define V(x) virtual void visit(x *ast) = 0;
-    VS()
+    VISITS()
 #undef V
 };
 
 struct ASTPrinter : public ASTVisitor {
 #define V(x) void visit(x *ast) override;
-    VS()
+    VISITS()
 #undef V
 
     explicit ASTPrinter(std::ostream &os) : os(os) {}
@@ -57,21 +57,10 @@ private:
     std::ostream &os;
 };
 
-#undef VS
-
 struct AST {
     virtual void accept(ASTVisitor &vis) = 0;
 
     virtual ~AST() = default;
-
-    template<class T>
-    T *cast() {
-        return dynamic_cast<T *>(this);
-    }
-    template<class T>
-    const T *cast() const {
-        return dynamic_cast<const T *>(this);
-    }
 };
 
 #define OVERRIDE()                                                             \
@@ -83,15 +72,19 @@ struct FuncDefn : public AST {
     FuncDefn(Type *r, std::string n, std::vector<Field *> ps,
              std::vector<Stmt *> b)
             : ret_type(r), name(std::move(n)), params(std::move(ps)),
-              body(std::move(b)) {}
+              body(std::move(b)) {
+        type = new FuncType(r, ps);
+    }
     ~FuncDefn() override;
 
     Type *getRetType() const { return ret_type; }
     const std::string &getName() const { return name; }
     const std::vector<Field *> &getParams() const { return params; }
     const std::vector<Stmt *> &getBody() const { return body; }
+    Type *getType() const { return type; }
 
 private:
+    Type *type;
     Type *ret_type;
     std::string name;
     std::vector<Field *> params;
@@ -192,6 +185,8 @@ struct BinaryExpr : public Expr {
     BinOp getOpt() const { return opt; }
     Expr *getLhs() const { return lhs; }
     Expr *getRhs() const { return rhs; }
+
+    bool isLhsValue() const override;
 
 private:
     BinOp opt;

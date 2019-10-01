@@ -22,7 +22,7 @@ V(FuncDefn) {
     os << " " << ast->getName() << "(";
     for (auto p : ast->getParams())
         os << *p << ", ";
-    os << "\b\b)\n";
+    os << ")\n";
     for (auto s : ast->getBody())
         depths.push_back(d + 1), s->accept(*this);
     depths.pop_back();

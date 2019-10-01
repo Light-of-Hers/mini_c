@@ -1,7 +1,6 @@
 #include "ast.hh"
-#include "type.hh"
+#include "type_checker.hh"
 #include <cstdio>
-#include <cstdlib>
 #include <iostream>
 
 extern int yyparse();
@@ -23,6 +22,10 @@ int main(int argc, char **argv) {
 
     ASTPrinter printer(cout);
     for (auto top : *prog)
-        printer.print(top), delete top;
-    delete (prog);
+        printer.print(top);
+
+    TypeChecker checker;
+    auto ok = checker.check(*prog);
+    std::cout << std::boolalpha;
+    std::cout << ok << std::endl;
 }

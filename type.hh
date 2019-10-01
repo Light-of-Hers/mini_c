@@ -13,24 +13,19 @@ namespace mc {
 
 struct Type {
     virtual ~Type() = default;
-
     virtual std::ostream &print(std::ostream &os) const = 0;
-
-    template<class T>
-    T *cast() const {
-        return dynamic_cast<T *>(this);
-    }
-    template<class T>
-    const T *cast() const {
-        return dynamic_cast<const T *>(this);
-    }
-
     virtual int byteSize() const { return -1; }
-
-    std::string signature() const;
+    virtual Type *indexType(std::vector<int>::const_iterator beg,
+                            std::vector<int>::const_iterator end);
 
     friend std::ostream &operator<<(std::ostream &os, const Type &t);
     friend bool operator==(const Type &a, const Type &b);
+    friend bool operator!=(const Type &a, const Type &b);
+
+    virtual bool compatible(const Type &other) const { return *this == other; }
+
+protected:
+    virtual bool equal(const Type &other) const = 0;
 };
 
 struct Field {
@@ -51,6 +46,9 @@ struct IntType : public PrimitiveType {
     std::ostream &print(std::ostream &os) const override;
 
     int byteSize() const override;
+
+protected:
+    bool equal(const Type &other) const override;
 };
 
 struct CompoundType : public Type {
@@ -66,6 +64,9 @@ struct FuncType : public CompoundType {
     Type *getRet() const { return ret; }
     const std::vector<Type *> &getParams() const { return params; }
 
+protected:
+    bool equal(const Type &other) const override;
+
 private:
     Type *ret;
     std::vector<Type *> params;
@@ -79,6 +80,14 @@ struct VariantArrayType : public CompoundType {
 
     Type *getBase() const { return base; }
 
+    Type *indexType(std::vector<int>::const_iterator beg,
+                    std::vector<int>::const_iterator end) override;
+
+    bool compatible(const Type &other) const override;
+
+protected:
+    bool equal(const Type &other) const override;
+
 protected:
     Type *base;
 };
@@ -91,6 +100,12 @@ struct ArrayType : public VariantArrayType {
     int byteSize() const override;
 
     int getWidth() const { return width; }
+
+    Type *indexType(std::vector<int>::const_iterator beg,
+                    std::vector<int>::const_iterator end) override;
+
+protected:
+    bool equal(const Type &other) const override;
 
 private:
     int width;
