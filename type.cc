@@ -19,11 +19,8 @@ bool VariantArrayType::equal(const Type &other) const {
     auto rhs = dynamic_cast<const VariantArrayType &>(other);
     return *base == *rhs.base;
 }
-Type *VariantArrayType::indexType(std::vector<int>::const_iterator beg,
-                                  std::vector<int>::const_iterator end) {
-    if (beg == end)
-        return this;
-    return base->indexType(beg + 1, end);
+Type *VariantArrayType::indexType(int dim) {
+    return dim == 0 ? this : base->indexType(dim - 1);
 }
 bool VariantArrayType::compatible(const Type &other) const {
     if (typeid(other) == typeid(ArrayType)) {
@@ -81,14 +78,6 @@ bool ArrayType::equal(const Type &other) const {
     auto rhs = dynamic_cast<const ArrayType &>(other);
     return width == rhs.width && *base == *rhs.base;
 }
-Type *ArrayType::indexType(std::vector<int>::const_iterator beg,
-                           std::vector<int>::const_iterator end) {
-    if (beg == end)
-        return this;
-    if (*beg >= width)
-        return nullptr;
-    return base->indexType(beg + 1, end);
-}
 std::ostream &operator<<(std::ostream &os, const Field &f) {
     return os << f.id << ": " << *f.type;
 }
@@ -101,9 +90,8 @@ bool operator==(const Type &a, const Type &b) {
 bool operator!=(const Type &a, const Type &b) {
     return !(a == b);
 }
-Type *
-Type::indexType(std::vector<int>::const_iterator beg, std::vector<int>::const_iterator end) {
-    return beg == end ? this : nullptr;
+Type *Type::indexType(int dim) {
+    return dim == 0 ? this : nullptr;
 }
 
 }; // namespace mc

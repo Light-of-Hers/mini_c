@@ -219,15 +219,15 @@ struct RefExpr : public Expr {
 
     bool isLhsValue() const override { return true; }
 
-    RefExpr(std::string n, std::vector<int> i)
+    RefExpr(std::string n, std::vector<Expr *> i)
             : name(std::move(n)), index(std::move(i)) {}
 
     const std::string &getName() const { return name; }
-    const std::vector<int> &getIndex() const { return index; }
+    const std::vector<Expr *> &getIndex() const { return index; }
 
 private:
     std::string name;
-    std::vector<int> index;
+    std::vector<Expr *> index;
 };
 
 struct CallExpr : public Expr {

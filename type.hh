@@ -15,8 +15,7 @@ struct Type {
     virtual ~Type() = default;
     virtual std::ostream &print(std::ostream &os) const = 0;
     virtual int byteSize() const { return -1; }
-    virtual Type *indexType(std::vector<int>::const_iterator beg,
-                            std::vector<int>::const_iterator end);
+    virtual Type *indexType(int dim);
 
     friend std::ostream &operator<<(std::ostream &os, const Type &t);
     friend bool operator==(const Type &a, const Type &b);
@@ -80,8 +79,7 @@ struct VariantArrayType : public CompoundType {
 
     Type *getBase() const { return base; }
 
-    Type *indexType(std::vector<int>::const_iterator beg,
-                    std::vector<int>::const_iterator end) override;
+    Type *indexType(int dim) override;
 
     bool compatible(const Type &other) const override;
 
@@ -100,9 +98,6 @@ struct ArrayType : public VariantArrayType {
     int byteSize() const override;
 
     int getWidth() const { return width; }
-
-    Type *indexType(std::vector<int>::const_iterator beg,
-                    std::vector<int>::const_iterator end) override;
 
 protected:
     bool equal(const Type &other) const override;

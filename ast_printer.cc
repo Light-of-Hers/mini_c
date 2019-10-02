@@ -96,10 +96,9 @@ V(UnaryExpr) {
 V(RefExpr) {
     int d = depths.back();
     indent(os, d);
-    os << "RefExpr: " << ast->getName();
-    for (auto i : ast->getIndex())
-        os << '[' << i << ']';
-    os << std::endl;
+    os << "RefExpr: " << ast->getName() << std::endl;
+    for (auto e : ast->getIndex())
+        depths.push_back(d + 1), e->accept(*this);
     depths.pop_back();
 }
 

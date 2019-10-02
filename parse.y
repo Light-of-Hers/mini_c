@@ -33,7 +33,6 @@
     CallExpr* call;
     RefExpr* ref;
     vector<Expr*>* exprs;
-    vector<int>* index;
     string* s;
     int i;
 }
@@ -55,10 +54,9 @@
 %type <while_stmt> while_stmt
 %type <ret_stmt> ret_stmt
 %type <expr> expr_ expr ass_expr cmp_expr or_expr and_expr add_expr mul_expr rem_expr factor
-%type <exprs> arg_list arg_list_
+%type <exprs> arg_list arg_list_ array_index
 %type <call> call
 %type <ref> ref
-%type <index> array_index
 
 %nonassoc ')'
 %nonassoc ELSE
@@ -311,11 +309,11 @@ ref:
         { $$ = new RefExpr(*$1, *$2); delete $1; delete $2; }
     ;
 
-// vector<int>*
+// vector<Expr*>*
 array_index:
     %empty
-        { $$ = new vector<int>; }
-    | array_index '[' NUM ']'
+        { $$ = new vector<Expr*>; }
+    | array_index '[' expr ']'
         { $1->push_back($3); $$ = $1; }
     ;
 

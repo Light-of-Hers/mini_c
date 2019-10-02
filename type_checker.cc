@@ -121,9 +121,15 @@ V(RefExpr) {
     auto var_type = lookup(ast->getName());
     if (!var_type)
         FAIL();
-    auto ref_type = var_type->indexType(ast->getIndex().begin(), ast->getIndex().end());
+    auto ref_type = var_type->indexType(ast->getIndex().size());
     if (!ref_type)
         FAIL();
+    for (auto e : ast->getIndex()) {
+        e->accept(*this);
+        CHECK();
+        if (!dynamic_cast<IntType *>(e->getType()))
+            FAIL();
+    }
     ast->setType(ref_type);
 }
 
