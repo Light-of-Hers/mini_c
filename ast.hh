@@ -222,14 +222,17 @@ struct RefExpr : public Expr {
     bool isLhsValue() const override { return true; }
 
     RefExpr(std::string n, std::vector<Expr *> i)
-            : name(std::move(n)), index(std::move(i)) {}
+            : name(std::move(n)), index(std::move(i)), var_type(nullptr) {}
 
     const std::string &getName() const { return name; }
     const std::vector<Expr *> &getIndex() const { return index; }
+    Type *getVarType() const { return var_type; }
+    void setVarType(Type *varType) { var_type = varType; }
 
 private:
     std::string name;
     std::vector<Expr *> index;
+    Type *var_type;
 };
 
 struct CallExpr : public Expr {

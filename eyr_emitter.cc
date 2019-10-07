@@ -156,12 +156,13 @@ void EyrEmitter::visit(RefExpr *ast) {
     auto src = cur_opr;
     auto store = will_store;
     will_store = false;
-    if (auto arr = dynamic_cast<VariantArrayType *>(ast->getType())) {
-        auto base = arr->getBase();
+    if (auto arr = dynamic_cast<VariantArrayType *>(ast->getVarType())) {
+        auto base = static_cast<Type *>(arr);
         auto idx_var = allocTemp();
         auto tmp_off = allocTemp();
         cur_blk->addInst(new MoveInst(cur_blk, idx_var, Operand(0)));
         for (auto e : ast->getIndex()) {
+            base = dynamic_cast<VariantArrayType *>(base)->getBase();
             assert(base != nullptr);
             e->accept(*this);
             auto ret = cur_opr;
@@ -170,7 +171,6 @@ void EyrEmitter::visit(RefExpr *ast) {
             cur_blk->addInst(
                     new BinaryInst(cur_blk, idx_var, BinaryInst::BinOp::ADD, Operand(idx_var),
                                    Operand(tmp_off)));
-            base = dynamic_cast<VariantArrayType *>(base)->getBase();
         }
         if (store) {
             auto dst = lookup(ast->getName());

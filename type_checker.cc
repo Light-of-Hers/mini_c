@@ -131,6 +131,7 @@ V(RefExpr) {
             FAIL();
     }
     ast->setType(ref_type);
+    ast->setVarType(var_type);
 }
 
 V(CallExpr) {

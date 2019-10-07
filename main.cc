@@ -10,6 +10,7 @@ extern FILE *yyin;
 
 extern void yyerror(const char *s) {
     std::cout << "unknown token: " << s << std::endl;
+    exit(1);
 }
 
 int main(int argc, char **argv) {
@@ -28,9 +29,11 @@ int main(int argc, char **argv) {
     TypeChecker checker;
     auto ok = checker.check(*global_prog);
     std::cout << std::boolalpha;
-    std::cout << ok << std::endl;
+    std::cout << std::endl << "Type Check OK: " << ok << std::endl;
+    if (!ok)
+        return 1;
 
     EyrEmitter emitter;
     auto mod = emitter.emit(*global_prog);
-    std::cout << *mod;
+    std::cout << std::endl << *mod;
 }
