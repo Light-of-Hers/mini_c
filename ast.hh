@@ -23,6 +23,7 @@ struct UnaryExpr;
 struct CallExpr;
 struct RefExpr;
 struct NumExpr;
+using Program = std::vector<AST *>;
 
 #define VISITS()                                                                   \
     V(FuncDefn)                                                                \
@@ -51,11 +52,13 @@ struct ASTPrinter : public ASTVisitor {
     explicit ASTPrinter(std::ostream &os) : os(os) {}
 
     void print(AST *ast);
+    void print(const Program &prog);
 
 private:
     std::vector<int> depths;
     std::ostream &os;
 };
+
 
 struct AST {
     virtual void accept(ASTVisitor &vis) = 0;
@@ -198,8 +201,7 @@ struct UnaryExpr : public Expr {
     OVERRIDE()
 
     enum class UnOp {
-        NEG = 0,
-        NOT,
+        NEG = 0, NOT,
     };
     static const char *const OpStr[];
 
@@ -258,7 +260,7 @@ private:
 
 #undef OVERRIDE
 
-extern std::vector<AST *> *prog;
+extern std::vector<AST *> *global_prog;
 
 }; // namespace mc
 

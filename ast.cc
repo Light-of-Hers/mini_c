@@ -47,15 +47,13 @@ CallExpr::~CallExpr() {
         delete (arg);
 }
 
-std::vector<AST *> *prog = nullptr;
+std::vector<AST *> *global_prog = nullptr;
 
 const char *const BinaryExpr::OpStr[] = {",", "=", "==", "!=", "<", ">", "||",
                                          "&&", "+", "-", "*", "/", "%"};
 bool BinaryExpr::isLhsValue() const {
     if (opt == BinOp::ASSIGN)
         return true;
-    else if (opt == BinOp::COMMA)
-        return rhs->isLhsValue();
     return false;
 }
 

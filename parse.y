@@ -66,7 +66,7 @@
 // vector<AST*>*
 tops:
     %empty
-        { $$ = prog = new std::vector<AST*>; }
+        { $$ = global_prog = new std::vector<AST*>; }
     | tops top  
         { $1->push_back($2); $$ = $1; }
     ;

@@ -117,6 +117,10 @@ V(NumExpr) {
     os << "NumExpr: " << ast->getNum() << std::endl;
     depths.pop_back();
 }
+void ASTPrinter::print(const std::vector<AST *> &tops) {
+    for (auto ast: tops)
+        print(ast);
+}
 
 #undef V
 

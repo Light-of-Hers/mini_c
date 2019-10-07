@@ -1,5 +1,6 @@
 #include "ast.hh"
 #include "type_checker.hh"
+#include "eyr_emitter.hh"
 #include <cstdio>
 #include <iostream>
 
@@ -14,6 +15,7 @@ extern void yyerror(const char *s) {
 int main(int argc, char **argv) {
     using namespace mc;
     using namespace std;
+    using namespace eyr;
 
     if (argc > 1)
         yyin = fopen(argv[1], "r");
@@ -21,11 +23,14 @@ int main(int argc, char **argv) {
     yyparse();
 
     ASTPrinter printer(cout);
-    for (auto top : *prog)
-        printer.print(top);
+    printer.print(*global_prog);
 
     TypeChecker checker;
-    auto ok = checker.check(*prog);
+    auto ok = checker.check(*global_prog);
     std::cout << std::boolalpha;
     std::cout << ok << std::endl;
+
+    EyrEmitter emitter;
+    auto mod = emitter.emit(*global_prog);
+    std::cout << *mod;
 }

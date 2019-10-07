@@ -13,7 +13,7 @@ static inline bool isPrim(Type *t) {
 
 #define V(x) void TypeChecker::visit(x *ast)
 #define CHECK() do{if (!okay) return;}while(0)
-#define FAIL() do {okay = false; return;}while(0)
+#define FAIL() do {okay = false; std::cerr << __LINE__ << std::endl; return;}while(0)
 
 V(IfStmt) {
     ast->getCond()->accept(*this);
@@ -56,7 +56,7 @@ V(FuncDefn) {
 V(ReturnStmt) {
     ast->getValue()->accept(*this);
     CHECK();
-    if (ast->getValue()->getType() != cur_ret_type)
+    if (*ast->getValue()->getType() != *cur_ret_type)
         FAIL();
 }
 
