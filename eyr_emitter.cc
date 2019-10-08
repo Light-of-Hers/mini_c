@@ -44,9 +44,9 @@ void EyrEmitter::visit(IfStmt *ast) {
                                         static_cast<BranchInst::LgcOp>(expr->getOpt()), lhs, rhs));
     } else {
         cond->accept(*this);
-        auto out = cur_opr;
+        auto res = cur_opr;
         cur_blk->addInst(new BranchInst(cur_blk, then_blk,
-                                        BranchInst::LgcOp::NE, out, Operand(0)));
+                                        BranchInst::LgcOp::NE, res, Operand(0)));
     }
 
     cur_blk = else_blk;

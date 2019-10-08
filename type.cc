@@ -12,9 +12,6 @@ std::ostream &VariantArrayType::print(std::ostream &os) const {
     base->print(os);
     return os;
 }
-VariantArrayType::~VariantArrayType() {
-    delete (base);
-}
 bool VariantArrayType::equal(const Type &other) const {
     auto rhs = dynamic_cast<const VariantArrayType &>(other);
     return *base == *rhs.base;
@@ -41,11 +38,6 @@ std::ostream &FuncType::print(std::ostream &os) const {
     os << ")=>";
     ret->print(os);
     return os;
-}
-FuncType::~FuncType() {
-    delete (ret);
-    for (auto p: params)
-        delete (p);
 }
 FuncType::FuncType(Type *r, const std::vector<Field *> &fs) : ret(r), params() {
     for (auto f :fs)

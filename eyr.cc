@@ -22,7 +22,7 @@ DeclInst *Function::allocLocalVar(BasicBlock *block, bool temp, int width) {
         var_name = std::string("T") + std::to_string(T_id++);
     auto var = new DeclInst(block, std::move(var_name), temp, width);
     local_vars.push_back(var);
-    block->addInst(var);
+//    block->addInst(var);
     return var;
 }
 
@@ -38,6 +38,8 @@ std::ostream &Function::print(std::ostream &os) const {
     os << "f_" << name << " [" << params.size() << ']' << std::endl;
     std::set<BasicBlock *> blks(blocks.begin(), blocks.end());
     auto blk = entry;
+    for (auto var: local_vars)
+        var->print(os);
     while (true) {
         for (auto b = blk; b; b = b->fall_out) {
             b->print(os);

@@ -30,7 +30,6 @@ protected:
 struct Field {
 
     Field(std::string s, Type *t) : id(std::move(s)), type(t) {}
-    virtual ~Field() { delete (type); }
 
     friend std::ostream &operator<<(std::ostream &os, const Field &f);
 
@@ -58,7 +57,6 @@ struct FuncType : public CompoundType {
 
     FuncType(Type *r, const std::vector<Field *> &fs);
     FuncType(Type *r, std::vector<Type *> ps) : ret(r), params(std::move(ps)) {}
-    ~FuncType() override;
 
     Type *getRet() const { return ret; }
     const std::vector<Type *> &getParams() const { return params; }
@@ -73,7 +71,6 @@ private:
 
 struct VariantArrayType : public CompoundType {
     explicit VariantArrayType(Type *b) : base(b) {}
-    ~VariantArrayType() override;
 
     std::ostream &print(std::ostream &os) const override;
 

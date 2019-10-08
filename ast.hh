@@ -62,7 +62,6 @@ private:
 
 struct AST {
     virtual void accept(ASTVisitor &vis) = 0;
-
     virtual ~AST() = default;
 };
 
@@ -72,13 +71,12 @@ struct AST {
 struct FuncDefn : public AST {
     OVERRIDE()
 
-    FuncDefn(Type *r, std::string n, std::vector<Field *> ps,
+    FuncDefn(Type *r, std::string n, const std::vector<Field *> &ps,
              std::vector<Stmt *> b)
-            : ret_type(r), name(std::move(n)), params(std::move(ps)),
+            : ret_type(r), name(std::move(n)), params(ps),
               body(std::move(b)) {
         type = new FuncType(r, ps);
     }
-    ~FuncDefn() override;
 
     Type *getRetType() const { return ret_type; }
     const std::string &getName() const { return name; }
@@ -101,7 +99,6 @@ struct IfStmt : public Stmt {
     OVERRIDE()
 
     IfStmt(Expr *c, Stmt *t, Stmt *a = nullptr) : cond(c), then(t), alter(a) {}
-    ~IfStmt() override;
 
     Expr *getCond() const { return cond; }
     Stmt *getThen() const { return then; }
@@ -117,7 +114,6 @@ struct WhileStmt : public Stmt {
     OVERRIDE()
 
     WhileStmt(Expr *t, Stmt *l) : test(t), loop(l) {}
-    ~WhileStmt() override;
 
     Expr *getTest() const { return test; }
     Stmt *getLoop() const { return loop; }
@@ -131,7 +127,6 @@ struct BlockStmt : public Stmt {
     OVERRIDE()
 
     explicit BlockStmt(std::vector<Stmt *> ss) : stmts(std::move(ss)) {}
-    ~BlockStmt() override;
 
     const std::vector<Stmt *> &getStmts() const { return stmts; }
 
@@ -143,7 +138,6 @@ struct ReturnStmt : public Stmt {
     OVERRIDE()
 
     explicit ReturnStmt(Expr *v) : value(v) {}
-    ~ReturnStmt() override;
 
     Expr *getValue() const { return value; }
 
@@ -155,7 +149,7 @@ struct DeclStmt : public Stmt {
     OVERRIDE()
 
     DeclStmt(const std::string &s, Type *t) : var(s, t) {}
-    explicit DeclStmt(const Field &v) : var(v) {}
+    explicit DeclStmt(Field v) : var(std::move(v)) {}
 
     const Field &getVar() const { return var; }
 
@@ -183,7 +177,6 @@ struct BinaryExpr : public Expr {
     static const char *const OpStr[];
 
     BinaryExpr(BinOp op, Expr *l, Expr *r) : opt(op), lhs(l), rhs(r) {}
-    ~BinaryExpr() override;
 
     BinOp getOpt() const { return opt; }
     Expr *getLhs() const { return lhs; }
@@ -206,7 +199,6 @@ struct UnaryExpr : public Expr {
     static const char *const OpStr[];
 
     UnaryExpr(UnOp op, Expr *r) : opt(op), opr(r) {}
-    ~UnaryExpr() override;
 
     UnOp getOpt() const { return opt; }
     Expr *getOpr() const { return opr; }
@@ -240,7 +232,6 @@ struct CallExpr : public Expr {
 
     CallExpr(std::string n, std::vector<Expr *> as)
             : name(std::move(n)), args(std::move(as)) {}
-    ~CallExpr() override;
 
     const std::string &getName() const { return name; }
     const std::vector<Expr *> &getArgs() const { return args; }
