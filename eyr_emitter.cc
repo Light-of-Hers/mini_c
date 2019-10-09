@@ -156,7 +156,8 @@ void EyrEmitter::visit(RefExpr *ast) {
     auto src = cur_opr;
     auto store = will_store;
     will_store = false;
-    if (auto arr = dynamic_cast<VariantArrayType *>(ast->getVarType())) {
+    if (dynamic_cast<VariantArrayType *>(ast->getVarType()) && !ast->getIndex().empty()) {
+        auto arr = dynamic_cast<VariantArrayType *>(ast->getVarType());
         auto base = static_cast<Type *>(arr);
         auto idx_var = allocTemp();
         auto tmp_off = allocTemp();

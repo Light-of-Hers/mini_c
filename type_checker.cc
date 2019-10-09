@@ -12,8 +12,8 @@ static inline bool isPrim(Type *t) {
 }
 
 #define V(x) void TypeChecker::visit(x *ast)
-#define CHECK() do{if (!okay) return;}while(0)
-#define FAIL() do {okay = false; std::cerr << __LINE__ << std::endl; return;}while(0)
+#define CHECK() do{if (!check_ok) return;}while(0)
+#define FAIL() do {check_ok = false; std::cerr << __LINE__ << std::endl; return;}while(0)
 
 V(IfStmt) {
     ast->getCond()->accept(*this);
@@ -38,12 +38,12 @@ V(WhileStmt) {
 }
 
 V(FuncDefn) {
-    def(ast->getName(), ast->getType());
+    bind(ast->getName(), ast->getType());
     CHECK();
     cur_ret_type = ast->getRetType();
     enter_scope();
     for (auto &f : ast->getParams()) {
-        def(f->id, f->type);
+        bind(f->id, f->type);
         CHECK();
     }
     for (auto s : ast->getBody()) {
@@ -70,7 +70,7 @@ V(BlockStmt) {
 }
 
 V(DeclStmt) {
-    def(ast->getVar().id, ast->getVar().type);
+    bind(ast->getVar().id, ast->getVar().type);
 }
 
 V(BinaryExpr) {
@@ -157,19 +157,19 @@ V(NumExpr) {
     ast->setType(new IntType);
 }
 bool TypeChecker::check(const std::vector<AST *> &tops) {
-    okay = true;
+    check_ok = true;
     environ.clear();
     cur_ret_type = nullptr;
 
     enter_scope();
     for (auto ast: tops) {
         ast->accept(*this);
-        if (!okay)
+        if (!check_ok)
             return false;
     }
     leave_scope();
 
-    return okay;
+    return check_ok;
 }
 Type *TypeChecker::lookup(const std::string &id) {
     for (auto &e : environ) {
@@ -179,7 +179,7 @@ Type *TypeChecker::lookup(const std::string &id) {
     }
     return nullptr;
 }
-void TypeChecker::def(const std::string &id, Type *type) {
+void TypeChecker::bind(const std::string &id, Type *type) {
     auto &e = *environ.begin();
     auto it = e.find(id);
     if (it == e.end()) {

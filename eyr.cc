@@ -132,9 +132,9 @@ std::ostream &JumpInst::print(std::ostream &os) const {
 }
 
 std::ostream &BranchInst::print(std::ostream &os) const {
-    os << "\t" << "if ( ";
+    os << "\t" << "if ";
     os << lhs << ' ' << BinaryExpr::OpStr[static_cast<int>(opt)] << ' ' << rhs;
-    os << " ) goto l" << dst->label << std::endl;
+    os << " goto l" << dst->label << std::endl;
     return os;
 }
 

@@ -22,13 +22,13 @@ public:
 
 private:
     Type *lookup(const std::string &id);
-    void def(const std::string &id, Type *type);
+    void bind(const std::string &id, Type *type);
     inline void enter_scope() { environ.emplace_front(); }
     inline void leave_scope() { environ.pop_front(); }
 
     Type *cur_ret_type;
     std::list<std::map<std::string, Type *>> environ;
-    bool okay;
+    bool check_ok;
 };
 
 };

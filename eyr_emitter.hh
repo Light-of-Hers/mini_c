@@ -17,7 +17,7 @@ struct EyrEmitter : public ASTVisitor {
 #define V(x) void visit(x *ast) override;
     VISITS()
 #undef V
-    ;
+public:
     Module *emit(const Program &prog);
 private:
     DeclInst *lookup(const std::string &id);
