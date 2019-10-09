@@ -34,7 +34,7 @@ struct Module {
     std::vector<Function *> global_funcs;
 
     void addFunction(Function *f);
-    DeclInst *allocGlobalVar(int width = -1);
+    DeclInst *allocGlobalVar(int width = -1, bool constant = false);
     friend std::ostream &operator<<(std::ostream &os, const Module &mod);
 };
 
@@ -47,7 +47,7 @@ struct Item {
 struct Function : public Item {
     Function(Module *m, std::string n, int argc);
     BasicBlock *allocBlock();
-    DeclInst *allocLocalVar(BasicBlock *block, bool temp = true, int width = -1);
+    DeclInst *allocLocalVar(BasicBlock *block, bool temp = true, int width = -1, bool constant = false);
 
     std::ostream &print(std::ostream &os) const override;
 
@@ -91,8 +91,9 @@ struct DeclInst : public Instruction {
     std::string name;
     bool temp;
     int width;
-    DeclInst(BasicBlock *b, std::string n, bool tmp = true, int w = -1) :
-            Instruction(b), name(std::move(n)), temp(tmp), width(w) {}
+    bool constant;
+    DeclInst(BasicBlock *b, std::string n, bool tmp = true, int w = -1, bool c = false) :
+            Instruction(b), name(std::move(n)), temp(tmp), width(w), constant(c) {}
     std::ostream &print(std::ostream &os) const override;
 };
 

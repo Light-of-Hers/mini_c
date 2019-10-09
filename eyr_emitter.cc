@@ -112,10 +112,11 @@ void EyrEmitter::visit(DeclStmt *ast) {
         return;
     assert(type->byteSize() >= 0);
     int width = dynamic_cast<ArrayType *>(type) ? type->byteSize() : -1;
+    bool constant = dynamic_cast<VariantArrayType *>(type) != nullptr;
     if (cur_func) {
-        def(ast->getVar().id, cur_func->allocLocalVar(cur_blk, false, width));
+        def(ast->getVar().id, cur_func->allocLocalVar(cur_blk, false, width, constant));
     } else {
-        def(ast->getVar().id, module->allocGlobalVar(width));
+        def(ast->getVar().id, module->allocGlobalVar(width, constant));
     }
 }
 void EyrEmitter::visit(BinaryExpr *ast) {
@@ -196,7 +197,7 @@ void EyrEmitter::visit(CallExpr *ast) {
     std::vector<Operand> args;
     for (auto arg: ast->getArgs()) {
         arg->accept(*this);
-        if (cur_opr.imm || cur_opr.var->temp) {
+        if (cur_opr.imm || cur_opr.var->temp || cur_opr.var->constant) {
             args.push_back(cur_opr);
         } else {
             auto tmp_var = allocTemp();
