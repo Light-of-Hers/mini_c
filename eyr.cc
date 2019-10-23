@@ -107,7 +107,7 @@ std::ostream &UnaryInst::print(std::ostream &os) const {
 std::ostream &CallInst::print(std::ostream &os) const {
     for (auto arg: args)
         os << "\tparam " << arg << std::endl;
-    os << '\t' << dst->name << " = f_" << name << std::endl;
+    os << '\t' << dst->name << " = call f_" << name << std::endl;
     return os;
 }
 

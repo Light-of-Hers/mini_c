@@ -23,15 +23,16 @@ int main(int argc, char **argv) {
 
     yyparse();
 
-    ASTPrinter printer(cout);
-    printer.print(*global_prog);
+//    ASTPrinter printer(cout);
+//    printer.print(*global_prog);
 
     TypeChecker checker;
     auto ok = checker.check(*global_prog);
-    std::cout << std::boolalpha;
-    std::cout << std::endl << "Type Check OK: " << ok << std::endl;
-    if (!ok)
-        return 1;
+    (void) ok;
+//    std::cout << std::boolalpha;
+//    std::cout << std::endl << "Type Check OK: " << ok << std::endl;
+//    if (!ok)
+//        return 1;
 
     EyrEmitter emitter;
     auto mod = emitter.emit(*global_prog);
