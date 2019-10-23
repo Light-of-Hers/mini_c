@@ -9,6 +9,7 @@ YACC	:= bison
 SCANNER	:= scanner
 PARSER	:= parser
 
+HDRS	:= $(wildcard *.hh)
 SRCS	:= $(wildcard *.cc)
 OBJS	:= $(patsubst %.cc, %.o, $(SRCS)) $(SCANNER).o $(PARSER).o
 
@@ -22,6 +23,9 @@ LIBS	:= -lfl
 RM		:= rm -rf
 
 all: $(TARGET)
+
+handin: clean
+	tar -cf 1700012774.tar $(SRCS) $(HDRS) $(LEXS) $(YACCS) makefile
 
 run: all
 	./$(TARGET)
