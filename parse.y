@@ -201,24 +201,10 @@ expr:
 
 // Expr*
 ass_expr:
-    cmp_expr
+    or_expr
         { $$ = $1; }
     | ref '=' ass_expr
         { $$ = BIN(ASSIGN, $1, $3); }
-    ;
-
-// Expr*
-cmp_expr:
-    or_expr
-        { $$ = $1; }
-    | or_expr EQ or_expr
-        { $$ = BIN(EQ, $1, $3); }
-    | or_expr NE or_expr 
-        { $$ = BIN(NE, $1, $3); }
-    | or_expr '<' or_expr
-        { $$ = BIN(LT, $1, $3); }
-    | or_expr '>' or_expr
-        { $$ = BIN(GT, $1, $3); }
     ;
 
 // Expr*
@@ -231,10 +217,24 @@ or_expr:
 
 // Expr*
 and_expr:
+    cmp_expr
+        { $$ = $1; }
+    | and_expr AND cmp_expr
+        { $$ = BIN(AND, $1, $3); } 
+    ;
+
+// Expr*
+cmp_expr:
     add_expr
         { $$ = $1; }
-    | and_expr AND add_expr
-        { $$ = BIN(AND, $1, $3); } 
+    | add_expr EQ add_expr
+        { $$ = BIN(EQ, $1, $3); }
+    | add_expr NE add_expr 
+        { $$ = BIN(NE, $1, $3); }
+    | add_expr '<' add_expr
+        { $$ = BIN(LT, $1, $3); }
+    | add_expr '>' add_expr
+        { $$ = BIN(GT, $1, $3); }
     ;
 
 // Expr*

@@ -1,7 +1,7 @@
 CC		:= gcc
 CFLAGS	:= -Wall -O2 -g
 CXX 	:= g++
-CXXFLAGS:= -Wall -O2 -std=c++11 -g
+CXXFLAGS:= -Wall -O2 -std=c++11
 
 LEX		:= flex 
 YACC	:= bison
@@ -24,7 +24,7 @@ RM		:= rm -rf
 
 all: $(TARGET)
 
-handin: clean
+handin:
 	tar -cf 1700012774.tar $(SRCS) $(HDRS) $(LEXS) $(YACCS) makefile
 
 run: all

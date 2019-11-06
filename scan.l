@@ -13,7 +13,16 @@
 alpha   [a-zA-Z]
 digit   [0-9]
 
+%x COMMENT
+
 %%
+
+"/*"            { BEGIN(COMMENT); }
+<COMMENT>"*/"   { BEGIN(INITIAL); }
+<COMMENT>\n     { yylineno++; }
+<COMMENT>.      {}
+
+"//".*[\n\r]  { yylineno++; }
 
 "if"        { return IF; }
 "else"      { return ELSE; }
@@ -25,12 +34,13 @@ digit   [0-9]
 "||"        { return OR; }
 "&&"        { return AND; }
 
-[+\-*/%\[\](){},;=<>]  { return yytext[0]; }
+[+\-*/%\[\](){},;=<>!]  { return yytext[0]; }
 
 {digit}+    { yylval.i = atoi(yytext); return NUM; }
 
 ({alpha}|_)({alpha}|{digit}|_)* { yylval.s = new string(yytext); return ID; }
 
-[ \t\n\r] {}
+[ \r\t] {}
+\n { yylineno++; }
 
 %%

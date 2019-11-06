@@ -22,14 +22,14 @@ DeclInst *Function::allocLocalVar(BasicBlock *block, bool temp, int width, bool 
         var_name = std::string("T") + std::to_string(T_id++);
     auto var = new DeclInst(block, std::move(var_name), temp, width, constant);
     local_vars.push_back(var);
-//    block->addInst(var);
+    // block->addInst(var);
     return var;
 }
 
 Function::Function(Module *m, std::string n, int argc) :
         module(m), name(std::move(n)), params(argc),
-        fake(new BasicBlock(this)), entry(allocBlock()),
-        T_id(m->global_vars.size()), t_id(0) {
+        fake(new BasicBlock(this)), entry(allocBlock()), exit(allocBlock()),
+        T_id(m->T_id), t_id(m->t_id) {
     for (int i = 0; i < argc; ++i)
         params[i] = new DeclInst(fake, std::string("p") + std::to_string(i), false);
 }
@@ -63,7 +63,7 @@ void Module::addFunction(Function *f) {
 
 DeclInst *Module::allocGlobalVar(int width, bool constant) {
     auto var = new
-            DeclInst(nullptr, std::string("T") + std::to_string(global_vars.size()), false, width, constant);
+            DeclInst(nullptr, std::string("T") + std::to_string(T_id++), false, width, constant);
     global_vars.push_back(var);
     global_items.push_back(var);
     return var;
