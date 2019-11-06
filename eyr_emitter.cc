@@ -99,6 +99,8 @@ void EyrEmitter::visit(WhileStmt *ast) {
 void EyrEmitter::visit(ReturnStmt *ast) {
     ast->getValue()->accept(*this);
     cur_blk->addInst(new ReturnInst(cur_blk, cur_opr));
+    cur_blk->fall(cur_func->exit);
+    cur_blk = cur_func->allocBlock();
 }
 void EyrEmitter::visit(BlockStmt *ast) {
     enter_scope();
