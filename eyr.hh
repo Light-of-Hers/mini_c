@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <cassert>
 #include <iostream>
 #include <list>
 
@@ -34,7 +35,7 @@ struct Module {
     std::vector<Function *> global_funcs;
     int T_id{0};
     int t_id{0};
-    int label{0};
+    int l_id{0};
 
     void addFunction(Function *f);
     DeclInst *allocGlobalVar(int width = -1, bool constant = false);
@@ -52,12 +53,9 @@ struct Function : public Item {
     std::string name;
     std::vector<DeclInst *> params;
     std::vector<DeclInst *> local_vars;
+    std::vector<BasicBlock *> blocks;
     BasicBlock *fake;
     BasicBlock *entry;
-    BasicBlock *exit;
-    int &T_id;
-    int &t_id;
-    std::vector<BasicBlock *> blocks;
 
     Function(Module *m, std::string n, int argc);
     BasicBlock *allocBlock();
@@ -65,23 +63,31 @@ struct Function : public Item {
     DeclInst *
     allocLocalVar(BasicBlock *block, bool temp = true, int width = -1, bool constant = false);
 
+    void arrangeBlock();
+
     std::ostream &print(std::ostream &os) const override;
 };
 
 struct BasicBlock : public Item {
     Function *func;
-    int label;
+    int label{0};
+    int b_id{0}; // in-function block id
+    bool mark;
     std::vector<Instruction *> insts;
-    BasicBlock *fall_out;
-    BasicBlock *fall_in;
-    BasicBlock *jump_out;
-    std::vector<BasicBlock *> jump_in;
 
-    explicit BasicBlock(Function *f = nullptr) :
-            func(f), label(f->module->label++), fall_out(nullptr), fall_in(nullptr),
-            jump_out(nullptr) {}
-    inline void fall(BasicBlock *b) { fall_out = b, b->fall_in = this; }
-    inline void jump(BasicBlock *b) { jump_out = b, b->jump_in.push_back(this); }
+    BasicBlock *fall_out{nullptr};
+    BasicBlock *fall_in{nullptr};
+    BasicBlock *jump_out{nullptr};
+    std::set<BasicBlock *> jump_in;
+
+    explicit BasicBlock(Function *f) : func(f) {}
+    inline void fall(BasicBlock *b) {
+        fall_out = b, b->fall_in = this;
+    }
+    inline void jump(BasicBlock *b) {
+        jump_out = b, b->jump_in.insert(this);
+    }
+
     inline void addInst(Instruction *i) { insts.push_back(i); }
     std::ostream &print(std::ostream &os) const override;
 };

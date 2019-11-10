@@ -3,6 +3,8 @@
 //
 #include "eyr.hh"
 #include <algorithm>
+#include <cassert>
+#include <list>
 #include "ast.hh"
 
 
@@ -10,16 +12,19 @@ namespace mc {
 namespace eyr {
 
 BasicBlock *Function::allocBlock() {
-    blocks.push_back(new BasicBlock(this));
-    return blocks.back();
+    auto blk = new BasicBlock(this);
+    blk->b_id = blocks.size();
+    blk->label = module->l_id++;
+    blocks.push_back(blk);
+    return blk;
 }
 
 DeclInst *Function::allocLocalVar(BasicBlock *block, bool temp, int width, bool constant) {
     std::string var_name;
     if (temp)
-        var_name = std::string("t") + std::to_string(t_id++);
+        var_name = std::string("t") + std::to_string(module->t_id++);
     else
-        var_name = std::string("T") + std::to_string(T_id++);
+        var_name = std::string("T") + std::to_string(module->T_id++);
     auto var = new DeclInst(block, std::move(var_name), temp, width, constant);
     local_vars.push_back(var);
     // block->addInst(var);
@@ -28,32 +33,63 @@ DeclInst *Function::allocLocalVar(BasicBlock *block, bool temp, int width, bool 
 
 Function::Function(Module *m, std::string n, int argc) :
         module(m), name(std::move(n)), params(argc),
-        fake(new BasicBlock(this)), entry(allocBlock()), exit(allocBlock()),
-        T_id(m->T_id), t_id(m->t_id) {
+        fake(new BasicBlock(this)) {
+    entry = allocBlock();
     for (int i = 0; i < argc; ++i)
         params[i] = new DeclInst(fake, std::string("p") + std::to_string(i), false);
 }
 
 std::ostream &Function::print(std::ostream &os) const {
     os << "f_" << name << " [" << params.size() << ']' << std::endl;
-    std::set<BasicBlock *> blks(blocks.begin(), blocks.end());
-    auto blk = entry;
     for (auto var: local_vars)
         var->print(os);
-    while (true) {
-        for (auto b = blk; b; b = b->fall_out) {
-            b->print(os);
-            blks.erase(b);
-        }
-        if (blks.empty())
-            break;
-        auto it = std::find_if(blks.begin(), blks.end(), [](BasicBlock *b) {
-            return b->fall_in == nullptr;
-        });
-        blk = *it;
-    }
+    for (auto blk: blocks)
+        blk->print(os);
     os << "end f_" << name << std::endl;
     return os;
+}
+void Function::arrangeBlock() {
+    std::vector<BasicBlock *> tmp_blocks;
+    for (auto blk: blocks)
+        blk->mark = false;
+    std::list<BasicBlock *> que;
+    que.push_back(entry);
+    while (!que.empty()) {
+        auto blk = que.front();
+        que.pop_front();
+        if (blk->mark)
+            continue;
+        blk->mark = true;
+        if (blk->fall_out)
+            que.push_back(blk->fall_out);
+        if (blk->jump_out)
+            que.push_back(blk->jump_out);
+    }
+
+    struct BBComp {
+        bool operator()(BasicBlock *const &a, BasicBlock *const &b) {
+            int a1 = a->mark ? 1 : 0;
+            int b1 = b->mark ? 1 : 0;
+            int a2 = a->fall_in ? a->fall_in->mark ? 2 : 1 : 0;
+            int b2 = b->fall_in ? b->fall_in->mark ? 2 : 1 : 0;
+            return a1 != b1 ? a1 < b1 : a2 != b2 ? a2 < b2 : a < b;
+        }
+    };
+    std::set<BasicBlock *, BBComp> left(blocks.begin(), blocks.end());
+    while (!(*left.begin())->mark)
+        left.erase(left.begin());
+    auto blk = entry;
+    while (true) {
+        for (auto b = blk; b; b = b->fall_out)
+            tmp_blocks.push_back(b), left.erase(b);
+        if (left.empty())
+            break;
+        blk = *left.begin();
+    }
+
+    blocks = tmp_blocks;
+    for (size_t i = 0; i < blocks.size(); ++i)
+        blocks[i]->b_id = i;
 }
 
 void Module::addFunction(Function *f) {

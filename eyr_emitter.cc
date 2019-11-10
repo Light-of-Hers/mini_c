@@ -23,6 +23,7 @@ void EyrEmitter::visit(FuncDefn *ast) {
     for (auto s : ast->getBody())
         s->accept(*this);
     leave_scope();
+    cur_func->arrangeBlock();
     cur_func = nullptr;
     cur_blk = nullptr;
 }
@@ -30,8 +31,6 @@ void EyrEmitter::visit(IfStmt *ast) {
     auto then_blk = cur_func->allocBlock();
     auto else_blk = cur_func->allocBlock();
     auto merge_blk = cur_func->allocBlock();
-    cur_blk->fall(else_blk);
-    cur_blk->jump(then_blk);
 
     auto cond = ast->getCond();
     auto expr = dynamic_cast<BinaryExpr *>(cond);
@@ -48,6 +47,8 @@ void EyrEmitter::visit(IfStmt *ast) {
         cur_blk->addInst(new BranchInst(cur_blk, then_blk,
                                         BranchInst::LgcOp::NE, res, Operand(0)));
     }
+    cur_blk->fall(else_blk);
+    cur_blk->jump(then_blk);
 
     cur_blk = else_blk;
     if (ast->getAlter())
@@ -99,7 +100,6 @@ void EyrEmitter::visit(WhileStmt *ast) {
 void EyrEmitter::visit(ReturnStmt *ast) {
     ast->getValue()->accept(*this);
     cur_blk->addInst(new ReturnInst(cur_blk, cur_opr));
-    cur_blk->fall(cur_func->exit);
     cur_blk = cur_func->allocBlock();
 }
 void EyrEmitter::visit(BlockStmt *ast) {
