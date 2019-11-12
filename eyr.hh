@@ -11,6 +11,7 @@
 #include <cassert>
 #include <iostream>
 #include <list>
+#include "util.hh"
 
 namespace mc {
 namespace eyr {
@@ -24,6 +25,8 @@ struct AssignInst;
 struct BinaryInst;
 struct UnaryInst;
 struct MoveInst;
+struct LoadInst;
+struct StoreInst;
 struct CallInst;
 struct JumpInst;
 struct BranchInst;
@@ -70,9 +73,9 @@ struct Function : public Item {
 
 struct BasicBlock : public Item {
     Function *func;
-    int label{0};
-    int b_id{0}; // in-function block id
-    bool mark;
+    int label{0}; // global label
+    int f_idx{0}; // in-function idx
+    bool reachable{false};
     std::vector<Instruction *> insts;
 
     BasicBlock *fall_out{nullptr};
@@ -94,6 +97,9 @@ struct BasicBlock : public Item {
 
 struct Instruction : public Item {
     BasicBlock *block;
+    int b_idx{0}; // in-block idx
+    int f_idx{0}; // in-function idx
+
     explicit Instruction(BasicBlock *b) : block(b) {}
 };
 

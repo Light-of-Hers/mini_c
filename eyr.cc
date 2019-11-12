@@ -13,7 +13,7 @@ namespace eyr {
 
 BasicBlock *Function::allocBlock() {
     auto blk = new BasicBlock(this);
-    blk->b_id = blocks.size();
+    blk->f_idx = blocks.size();
     blk->label = module->l_id++;
     blocks.push_back(blk);
     return blk;
@@ -49,17 +49,16 @@ std::ostream &Function::print(std::ostream &os) const {
     return os;
 }
 void Function::arrangeBlock() {
-    std::vector<BasicBlock *> tmp_blocks;
     for (auto blk: blocks)
-        blk->mark = false;
+        blk->reachable = false;
     std::list<BasicBlock *> que;
     que.push_back(entry);
     while (!que.empty()) {
         auto blk = que.front();
         que.pop_front();
-        if (blk->mark)
+        if (blk->reachable)
             continue;
-        blk->mark = true;
+        blk->reachable = true;
         if (blk->fall_out)
             que.push_back(blk->fall_out);
         if (blk->jump_out)
@@ -68,16 +67,18 @@ void Function::arrangeBlock() {
 
     struct BBComp {
         bool operator()(BasicBlock *const &a, BasicBlock *const &b) {
-            int a1 = a->mark ? 1 : 0;
-            int b1 = b->mark ? 1 : 0;
-            int a2 = a->fall_in ? a->fall_in->mark ? 2 : 1 : 0;
-            int b2 = b->fall_in ? b->fall_in->mark ? 2 : 1 : 0;
+            int a1 = a->reachable ? 1 : 0;
+            int b1 = b->reachable ? 1 : 0;
+            int a2 = a->fall_in ? a->fall_in->reachable ? 2 : 1 : 0;
+            int b2 = b->fall_in ? b->fall_in->reachable ? 2 : 1 : 0;
             return a1 != b1 ? a1 < b1 : a2 != b2 ? a2 < b2 : a < b;
         }
     };
     std::set<BasicBlock *, BBComp> left(blocks.begin(), blocks.end());
-    while (!(*left.begin())->mark)
+    while (!(*left.begin())->reachable)
         left.erase(left.begin());
+
+    std::vector<BasicBlock *> tmp_blocks;
     auto blk = entry;
     while (true) {
         for (auto b = blk; b; b = b->fall_out)
@@ -89,7 +90,7 @@ void Function::arrangeBlock() {
 
     blocks = tmp_blocks;
     for (size_t i = 0; i < blocks.size(); ++i)
-        blocks[i]->b_id = i;
+        blocks[i]->f_idx = i;
 }
 
 void Module::addFunction(Function *f) {
