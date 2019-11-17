@@ -20,13 +20,14 @@ struct EyrEmitter : public ASTVisitor {
 public:
     Module *emit(const Program &prog);
 private:
-    DeclInst *lookup(const std::string &id);
-    void def(const std::string &id, DeclInst *var);
+    Variable *lookup(const std::string &id);
+    void def(const std::string &id, Variable *var);
     inline void enter_scope() { environ.emplace_front(); }
     inline void leave_scope() { environ.pop_front(); }
-    inline DeclInst *allocTemp() { return cur_func->allocLocalVar(cur_blk); }
+    inline Variable *allocTemp() { return cur_func->allocLocalVar(); }
 
-    std::list<std::map<std::string, DeclInst *>> environ;
+    std::list<std::map<std::string, Variable *>> environ;
+
     BasicBlock *cur_blk;
     Function *cur_func;
     Operand cur_opr;

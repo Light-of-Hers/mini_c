@@ -32,21 +32,11 @@ void EyrEmitter::visit(IfStmt *ast) {
     auto else_blk = cur_func->allocBlock();
     auto merge_blk = cur_func->allocBlock();
 
-    auto cond = ast->getCond();
-    auto expr = dynamic_cast<BinaryExpr *>(cond);
-    if (expr && isLogicOp(expr->getOpt())) {
-        expr->getLhs()->accept(*this);
-        auto lhs = cur_opr;
-        expr->getRhs()->accept(*this);
-        auto rhs = cur_opr;
-        cur_blk->addInst(new BranchInst(cur_blk, then_blk,
-                                        static_cast<BranchInst::LgcOp>(expr->getOpt()), lhs, rhs));
-    } else {
-        cond->accept(*this);
-        auto res = cur_opr;
-        cur_blk->addInst(new BranchInst(cur_blk, then_blk,
-                                        BranchInst::LgcOp::NE, res, Operand(0)));
-    }
+    ast->getCond()->accept(*this);
+    auto pred = cur_opr;
+    cur_blk->addInst(new BranchInst(cur_blk, then_blk,
+                                    BranchInst::LgcOp::NE, pred, Operand(0)));
+
     cur_blk->fall(else_blk);
     cur_blk->jump(then_blk);
 
@@ -72,21 +62,10 @@ void EyrEmitter::visit(WhileStmt *ast) {
     cur_blk->jump(test_blk);
 
     cur_blk = test_blk;
-    auto test = ast->getTest();
-    auto expr = dynamic_cast<BinaryExpr *>(test);
-    if (expr && isLogicOp(expr->getOpt())) {
-        expr->getLhs()->accept(*this);
-        auto lhs = cur_opr;
-        expr->getRhs()->accept(*this);
-        auto rhs = cur_opr;
-        cur_blk->addInst(new BranchInst(cur_blk, loop_blk,
-                                        static_cast<BranchInst::LgcOp>(expr->getOpt()), lhs, rhs));
-    } else {
-        test->accept(*this);
-        auto out = cur_opr;
-        cur_blk->addInst(new BranchInst(cur_blk, loop_blk,
-                                        BranchInst::LgcOp::NE, out, Operand(0)));
-    }
+    ast->getTest()->accept(*this);
+    auto pred = cur_opr;
+    cur_blk->addInst(new BranchInst(cur_blk, loop_blk,
+                                    BranchInst::LgcOp::NE, pred, Operand(0)));
     cur_blk->jump(loop_blk);
     cur_blk->fall(break_blk);
 
@@ -116,11 +95,12 @@ void EyrEmitter::visit(DeclStmt *ast) {
     int width = dynamic_cast<ArrayType *>(type) ? type->byteSize() : -1;
     bool constant = dynamic_cast<VariantArrayType *>(type) != nullptr;
     if (cur_func) {
-        def(ast->getVar().id, cur_func->allocLocalVar(cur_blk, false, width, constant));
+        def(ast->getVar().id, cur_func->allocLocalVar(false, width, constant));
     } else {
         def(ast->getVar().id, module->allocGlobalVar(width, constant));
     }
 }
+
 void EyrEmitter::visit(BinaryExpr *ast) {
     switch (ast->getOpt()) {
         case BinaryExpr::BinOp::COMMA: {
@@ -170,8 +150,10 @@ void EyrEmitter::visit(RefExpr *ast) {
             assert(base != nullptr);
             e->accept(*this);
             auto ret = cur_opr;
+            auto bs = allocTemp();
+            cur_blk->addInst(new MoveInst(cur_blk, bs, Operand(base->byteSize())));
             cur_blk->addInst(new BinaryInst(cur_blk, tmp_off, BinaryInst::BinOp::MUL, ret,
-                                            Operand(base->byteSize())));
+                                            Operand(bs)));
             cur_blk->addInst(
                     new BinaryInst(cur_blk, idx_var, BinaryInst::BinOp::ADD, Operand(idx_var),
                                    Operand(tmp_off)));
@@ -199,7 +181,7 @@ void EyrEmitter::visit(CallExpr *ast) {
     std::vector<Operand> args;
     for (auto arg: ast->getArgs()) {
         arg->accept(*this);
-        if (cur_opr.imm || cur_opr.var->temp || cur_opr.var->constant) {
+        if (cur_opr.imm || cur_opr.var->is_temp || cur_opr.var->is_base_addr) {
             args.push_back(cur_opr);
         } else {
             auto tmp_var = allocTemp();
@@ -212,7 +194,10 @@ void EyrEmitter::visit(CallExpr *ast) {
     cur_opr = Operand(ret_var);
 }
 void EyrEmitter::visit(NumExpr *ast) {
-    cur_opr = Operand(ast->getNum());
+    auto tmp = allocTemp();
+    cur_blk->addInst(new MoveInst(cur_blk, tmp, Operand(ast->getNum())));
+    cur_opr = Operand(tmp);
+//    cur_opr = Operand(ast->getNum());
 }
 Module *EyrEmitter::emit(const Program &prog) {
     module = new Module;
@@ -226,7 +211,7 @@ Module *EyrEmitter::emit(const Program &prog) {
     leave_scope();
     return module;
 }
-DeclInst *EyrEmitter::lookup(const std::string &id) {
+Variable *EyrEmitter::lookup(const std::string &id) {
     for (auto &e:environ) {
         auto it = e.find(id);
         if (it != e.end())
@@ -234,7 +219,7 @@ DeclInst *EyrEmitter::lookup(const std::string &id) {
     }
     return nullptr;
 }
-void EyrEmitter::def(const std::string &id, DeclInst *var) {
+void EyrEmitter::def(const std::string &id, Variable *var) {
     environ.begin()->insert({id, var});
 }
 
