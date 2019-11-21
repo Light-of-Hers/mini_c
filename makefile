@@ -16,7 +16,7 @@ OBJS	:= $(patsubst %.cc, %.o, $(SRCS)) $(SCANNER).o $(PARSER).o
 LEXS	:= $(wildcard *.lex *.l)
 YACCS	:= $(wildcard *.yacc *.y)
 
-TARGET	:= eeyore
+TARGET	:= tiggerC
 
 LIBS	:= -lfl
 
