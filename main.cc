@@ -2,8 +2,13 @@
 #include "config.hh"
 #include "eyr_emitter.hh"
 #include "type_checker.hh"
+#include "tgr_emitter.hh"
+#include "live_analyzer.hh"
+#include "ra_greedy.hh"
 #include <cstdio>
 #include <iostream>
+#include <fstream>
+
 
 extern int yyparse();
 
@@ -20,25 +25,37 @@ int main(int argc, char **argv) {
     using namespace std;
     using namespace eyr;
 
+    freopen("./debug.log", "w", stderr);
+    std::ofstream eyr_out("./output_eeyore"), ftgr_out("./output_ftigger"),
+            tgr_out("./output_tigger");
+
     if (argc > 1)
         yyin = fopen(argv[1], "r");
-
     yyparse();
 
-#ifdef DEBUG
-    ASTPrinter printer(cout);
-    printer.print(*global_prog);
+#ifdef MC_DEBUG
+//    ASTPrinter printer(cout);
+//    printer.print(*global_prog);
 #endif
     TypeChecker checker;
     auto ok = checker.check(*global_prog);
-    (void)ok;
-#ifdef DEBUG
-    std::cout << std::boolalpha;
-    std::cout << std::endl << "Type Check OK: " << ok << std::endl;
-    if (!ok)
-        return 1;
+    (void) ok;
+#ifdef MC_DEBUG
+//    std::cout << std::boolalpha;
+//    std::cout << std::endl << "Type Check OK: " << ok << std::endl;
+//    if (!ok)
+//        return 1;
 #endif
     EyrEmitter emitter;
     auto mod = emitter.emit(*global_prog);
-    std::cout << *mod;
+    eyr_out << *mod << std::endl;
+
+    tgr::TgrEmitter te;
+    auto tmod = te.emit(mod);
+    ftgr_out << *tmod << std::endl;
+    tgr::LiveAnalyzer::analyze(tmod);
+    tgr::RAGreedy greedy;
+    greedy.allocate(tmod);
+    tgr_out << *tmod << std::endl;
+    std::cout << *tmod << std::endl;
 }

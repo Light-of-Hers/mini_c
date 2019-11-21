@@ -19,13 +19,13 @@ BasicBlock *Function::allocBlock() {
     return blk;
 }
 
-Variable *Function::allocLocalVar(bool temp, int width, bool constant) {
+Variable *Function::allocLocalVar(bool temp, int width, bool addr) {
     std::string var_name;
     if (temp)
         var_name = std::string("t") + std::to_string(module->t_id++);
     else
         var_name = std::string("T") + std::to_string(module->T_id++);
-    auto var = new Variable(this, std::move(var_name), temp, width, constant);
+    auto var = new Variable(this, std::move(var_name), temp, width, addr);
     local_vars.push_back(var);
     return var;
 }
@@ -63,8 +63,9 @@ void Function::arrangeBlock() {
             que.push_back(blk->jump_out);
     }
     for (auto b: blocks) {
-        if (!b->reachable)
+        if (!b->reachable) {
             b->safeRemove();
+        }
     }
 
     struct BBComp {
@@ -109,9 +110,9 @@ void Module::addFunction(Function *f) {
     global_funcs.push_back(f);
 }
 
-Variable *Module::allocGlobalVar(int width, bool constant) {
+Variable *Module::allocGlobalVar(int width, bool addr) {
     auto var = new
-            Variable(nullptr, std::string("T") + std::to_string(T_id++), false, width, constant);
+            Variable(nullptr, std::string("T") + std::to_string(T_id++), false, width, addr);
     global_vars.push_back(var);
     global_items.push_back(var);
     return var;

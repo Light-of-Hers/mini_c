@@ -181,7 +181,7 @@ void EyrEmitter::visit(CallExpr *ast) {
     std::vector<Operand> args;
     for (auto arg: ast->getArgs()) {
         arg->accept(*this);
-        if (cur_opr.imm || cur_opr.var->is_temp || cur_opr.var->is_base_addr) {
+        if (cur_opr.imm || cur_opr.var->isTemp() || cur_opr.var->isAddr()) {
             args.push_back(cur_opr);
         } else {
             auto tmp_var = allocTemp();
@@ -189,7 +189,7 @@ void EyrEmitter::visit(CallExpr *ast) {
             args.emplace_back(tmp_var);
         }
     }
-    auto ret_var = allocTemp();
+    auto ret_var = allocTemp(); // always temp
     cur_blk->addInst(new CallInst(cur_blk, ret_var, ast->getName(), args));
     cur_opr = Operand(ret_var);
 }

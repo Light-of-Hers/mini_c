@@ -41,7 +41,7 @@ struct Module {
     int l_id{0};
 
     void addFunction(Function *f);
-    Variable *allocGlobalVar(int width = 0, bool constant = false);
+    Variable *allocGlobalVar(int width = 0, bool addr = false);
     friend std::ostream &operator<<(std::ostream &os, const Module &mod);
 };
 
@@ -63,7 +63,7 @@ struct Function : public Item {
     BasicBlock *allocBlock();
 
     Variable *
-    allocLocalVar(bool temp = true, int width = 0, bool constant = false);
+    allocLocalVar(bool temp = true, int width = 0, bool addr = false);
 
     void arrangeBlock();
 
@@ -105,17 +105,19 @@ struct Variable : public Item {
     std::string name;
     bool is_temp;
     int width;
-    bool is_base_addr;
+    bool is_addr;
 
     std::vector<Instruction *> defers;
     std::vector<Instruction *> users;
 
     Variable(Function *f, std::string n, bool tmp = true, int w = 0, bool c = false) :
-            func(f), name(std::move(n)), is_temp(tmp), width(w), is_base_addr(c) {}
+            func(f), name(std::move(n)), is_temp(tmp), width(w), is_addr(c) {}
     std::ostream &print(std::ostream &os) const override;
 
     inline bool isGlobal() const { return func == nullptr; }
-    inline bool isLocal() const { return func != nullptr && !is_temp; }
+    inline bool isParam() const { return name[0] == 'p'; }
+    inline bool isLocal() const { return !isGlobal(); }
+    inline bool isAddr() const { return is_addr; }
     inline bool isTemp() const { return is_temp; }
 };
 
