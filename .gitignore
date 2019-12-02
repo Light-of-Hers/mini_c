@@ -1,0 +1,10 @@
+.idea/
+.vscode/
+test_src/
+*.o
+*input*
+*output*
+*.log
+*.tar
+CMakeLists.txt
+cmake_build_debug/
