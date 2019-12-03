@@ -335,7 +335,7 @@ void RAGreedy::saveRegsInBlockEnd() {
         return;
     std::function<void(Operation::Opt opt, std::array<Operand, 3> oprs)>
             gen_lmd;
-    if (opt == Operation::JUMP || opt == Operation::BRANCH) {
+    if (opt == Operation::JUMP || opt == Operation::BR_NE) {
         gen_lmd = [&](Operation::Opt opt, std::array<Operand, 3> oprs) -> void {
             last_op->addBefore(new Operation(opt, oprs));
         };

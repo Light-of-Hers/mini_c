@@ -1,10 +1,10 @@
 .idea/
 .vscode/
 test_src/
+cmake-build-debug/
 *.o
 *input*
 *output*
 *.log
 *.tar
 CMakeLists.txt
-cmake_build_debug/

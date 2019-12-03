@@ -116,7 +116,8 @@ struct Operation {
         UN_NEG = 0, UN_NOT,
         BIN_EQ, BIN_NE, BIN_LT, BIN_GT, BIN_OR, BIN_AND,
         BIN_ADD, BIN_SUB, BIN_MUL, BIN_DIV, BIN_REM,
-        MOV, IDX_LD, IDX_ST, BRANCH, JUMP,
+        MOV, IDX_LD, IDX_ST,
+        BR_EQ, BR_NE, BR_LT, BR_GT, BR_OR, BR_AND, JUMP,
         CALL, STORE, LOAD, LOAD_ADDR, RET,
         __SET_PARAM, __BEGIN_PARAM, __GET_PARAM, __SET_RET, __GET_RET,
     } opt;
@@ -126,6 +127,7 @@ struct Operation {
             : opt(opt), oprs(opr), def_bits({false}) {}
     inline bool isBinOp() const { return opt >= BIN_EQ && opt <= BIN_REM; }
     inline bool isUnOp() const { return opt >= UN_NEG && opt <= UN_NOT; }
+    inline bool isBranch() const { return opt >= BR_EQ && opt <= BR_AND; }
     Operation *prev();
     Operation *next();
     void addBefore(Operation *op);

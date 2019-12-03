@@ -78,11 +78,11 @@ struct FuncDefn : public AST {
         type = new FuncType(r, ps);
     }
 
-    Type *getRetType() const { return ret_type; }
-    const std::string &getName() const { return name; }
-    const std::vector<Field *> &getParams() const { return params; }
-    const std::vector<Stmt *> &getBody() const { return body; }
-    Type *getType() const { return type; }
+    Type *get_ret_type() const { return ret_type; }
+    const std::string &get_name() const { return name; }
+    const std::vector<Field *> &get_params() const { return params; }
+    const std::vector<Stmt *> &get_body() const { return body; }
+    Type *get_type() const { return type; }
 
 private:
     Type *type;
@@ -100,9 +100,9 @@ struct IfStmt : public Stmt {
 
     IfStmt(Expr *c, Stmt *t, Stmt *a = nullptr) : cond(c), then(t), alter(a) {}
 
-    Expr *getCond() const { return cond; }
-    Stmt *getThen() const { return then; }
-    Stmt *getAlter() const { return alter; }
+    Expr *get_cond() const { return cond; }
+    Stmt *get_then() const { return then; }
+    Stmt *get_alter() const { return alter; }
 
 private:
     Expr *cond;
@@ -115,8 +115,8 @@ struct WhileStmt : public Stmt {
 
     WhileStmt(Expr *t, Stmt *l) : test(t), loop(l) {}
 
-    Expr *getTest() const { return test; }
-    Stmt *getLoop() const { return loop; }
+    Expr *get_test() const { return test; }
+    Stmt *get_loop() const { return loop; }
 
 private:
     Expr *test;
@@ -128,7 +128,7 @@ struct BlockStmt : public Stmt {
 
     explicit BlockStmt(std::vector<Stmt *> ss) : stmts(std::move(ss)) {}
 
-    const std::vector<Stmt *> &getStmts() const { return stmts; }
+    const std::vector<Stmt *> &get_stmts() const { return stmts; }
 
 private:
     std::vector<Stmt *> stmts;
@@ -139,7 +139,7 @@ struct ReturnStmt : public Stmt {
 
     explicit ReturnStmt(Expr *v) : value(v) {}
 
-    Expr *getValue() const { return value; }
+    Expr *get_value() const { return value; }
 
 private:
     Expr *value;
@@ -151,7 +151,7 @@ struct DeclStmt : public Stmt {
     DeclStmt(const std::string &s, Type *t) : var(s, t) {}
     explicit DeclStmt(Field v) : var(std::move(v)) {}
 
-    const Field &getVar() const { return var; }
+    const Field &get_var() const { return var; }
 
 private:
     Field var;
@@ -160,8 +160,8 @@ private:
 struct Expr : public Stmt {
     virtual bool isLhsValue() const { return false; }
 
-    Type *getType() const { return type; }
-    void setType(Type *t) { type = t; }
+    Type *get_type() const { return type; }
+    void set_type(Type *t) { type = t; }
 
 protected:
     Type *type{}; // 类型检查时使用
@@ -178,9 +178,9 @@ struct BinaryExpr : public Expr {
 
     BinaryExpr(BinOp op, Expr *l, Expr *r) : opt(op), lhs(l), rhs(r) {}
 
-    BinOp getOpt() const { return opt; }
-    Expr *getLhs() const { return lhs; }
-    Expr *getRhs() const { return rhs; }
+    BinOp get_opt() const { return opt; }
+    Expr *get_lhs() const { return lhs; }
+    Expr *get_rhs() const { return rhs; }
 
     bool isLhsValue() const override;
 
@@ -200,8 +200,8 @@ struct UnaryExpr : public Expr {
 
     UnaryExpr(UnOp op, Expr *r) : opt(op), opr(r) {}
 
-    UnOp getOpt() const { return opt; }
-    Expr *getOpr() const { return opr; }
+    UnOp get_opt() const { return opt; }
+    Expr *get_opr() const { return opr; }
 
 private:
     UnOp opt;
@@ -216,10 +216,10 @@ struct RefExpr : public Expr {
     RefExpr(std::string n, std::vector<Expr *> i)
             : name(std::move(n)), index(std::move(i)), var_type(nullptr) {}
 
-    const std::string &getName() const { return name; }
-    const std::vector<Expr *> &getIndex() const { return index; }
-    Type *getVarType() const { return var_type; }
-    void setVarType(Type *varType) { var_type = varType; }
+    const std::string &get_name() const { return name; }
+    const std::vector<Expr *> &get_index() const { return index; }
+    Type *get_var_type() const { return var_type; }
+    void set_var_type(Type *varType) { var_type = varType; }
 
 private:
     std::string name;
@@ -233,8 +233,8 @@ struct CallExpr : public Expr {
     CallExpr(std::string n, std::vector<Expr *> as)
             : name(std::move(n)), args(std::move(as)) {}
 
-    const std::string &getName() const { return name; }
-    const std::vector<Expr *> &getArgs() const { return args; }
+    const std::string &get_name() const { return name; }
+    const std::vector<Expr *> &get_args() const { return args; }
 
 private:
     std::string name;
@@ -246,7 +246,7 @@ struct NumExpr : public Expr {
 
     explicit NumExpr(int n) : num(n) {}
 
-    int getNum() const { return num; }
+    int get_num() const { return num; }
 
 private:
     int num;

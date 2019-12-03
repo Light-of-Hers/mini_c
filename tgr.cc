@@ -100,6 +100,11 @@ std::ostream &operator<<(std::ostream &os, const Operation &op) {
         os << op.oprs[0] << " = ";
         os << UnaryExpr::OpStr[static_cast<int>(op.opt)];
         os << op.oprs[1];
+    } else if (op.isBranch()) {
+        os << "if " << op.oprs[0] << " ";
+        os << BinaryExpr::OpStr[static_cast<int>(op.opt - Operation::BR_EQ + Operation::BIN_EQ)]
+           << " ";
+        os << op.oprs[1] << " goto " << op.oprs[2];
     } else {
         switch (op.opt) {
             when(Operation::MOV, {
@@ -110,9 +115,6 @@ std::ostream &operator<<(std::ostream &os, const Operation &op) {
             })
             when(Operation::IDX_ST, {
                 os << op.oprs[0] << '[' << op.oprs[1] << ']' << " = " << op.oprs[2];
-            })
-            when(Operation::BRANCH, {
-                os << "if " << op.oprs[0] << " != " << op.oprs[1] << " goto " << op.oprs[2];
             })
             when(Operation::JUMP, {
                 os << "goto " << op.oprs[0];

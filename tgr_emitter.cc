@@ -193,7 +193,7 @@ void TgrEmitter::emitBranchInst(eyr::BranchInst *inst) {
     assert(inst->rhs.imm && inst->rhs.val == 0);
     assert(!inst->lhs.imm);
     auto rx = loadVar(inst->lhs.var);
-    gen(Operation::BRANCH, {
+    gen(Operation::BR_NE, {
             VR(rx), PR(Reg::X0), BB(cur_func->blocks[inst->dst->f_idx]),
     });
 }
