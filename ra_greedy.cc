@@ -322,6 +322,8 @@ void RAGreedy::moveOpr2PhyReg(const Operand &src, Reg ai) {
     } else if (src.tag == Operand::FRM_SLT) {
         auto fs = src.val.frm_slt;
         genBefore(Operation::LOAD_ADDR, {FS(fs), PR(ai)});
+    } else if (src.tag == Operand::INTEGER) {
+        genBefore(Operation::MOV, {PR(ai), src});
     } else {
         assert(false);
     }

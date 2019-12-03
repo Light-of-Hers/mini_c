@@ -32,9 +32,10 @@ private:
 
     int allocVR();
     Variable *allocGV(int width = 0);
+    int loadOpr(eyr::Operand opr);
     int loadVar(eyr::Variable *x);
     int loadAddr(eyr::Variable *x);
-    void storeVar(const Operand& opr, eyr::Variable *var);
+    void storeVar(const Operand &opr, eyr::Variable *var);
     void gen(Operation::Opt opt, std::array<Operand, 3> oprs);
 
     void emitBinaryInst(eyr::BinaryInst *inst);

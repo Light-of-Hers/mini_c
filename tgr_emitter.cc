@@ -97,24 +97,32 @@ void TgrEmitter::runOnInstruction(eyr::Instruction *e_inst) {
 }
 void TgrEmitter::emitBinaryInst(eyr::BinaryInst *inst) {
     auto opt = static_cast<Operation::Opt>(inst->opt);
-    auto y = inst->lhs.var, z = inst->rhs.var;
     auto x = inst->dst;
-    assert(y && z);
-    auto ry = loadVar(y), rz = loadVar(z);
+    Operand oy, oz;
+    oy = VR(loadOpr(inst->lhs));
+    if (inst->rhs.imm) {
+        if (opt == Operation::BIN_ADD || opt == Operation::BIN_LT) {
+            oz = INT(inst->rhs.val);
+        } else {
+            oz = VR(loadOpr((inst->rhs)));
+        }
+    } else {
+        oz = VR(loadOpr((inst->rhs)));
+    }
     if (x->isGlobal()) {
         auto r1 = allocVR();
-        gen(opt, {VR(r1), VR(ry), VR(rz)});
+        gen(opt, {VR(r1), oy, oz});
         storeVar(VR(r1), x);
     } else {
         auto rx = loadVar(x);
-        gen(opt, {VR(rx), VR(ry), VR(rz)});
+        gen(opt, {VR(rx), oy, oz});
     }
+
 }
 void TgrEmitter::emitUnaryInst(eyr::UnaryInst *inst) {
     auto opt = static_cast<Operation::Opt>(inst->opt);
-    auto x = inst->dst, y = inst->opr.var;
-    assert(y);
-    auto ry = loadVar(y);
+    auto x = inst->dst;
+    auto ry = loadOpr(inst->opr);
     if (x->isGlobal()) {
         auto r1 = allocVR();
         gen(opt, {VR(r1), VR(ry)});
@@ -129,8 +137,9 @@ void TgrEmitter::emitCallInst(eyr::CallInst *inst) {
     gen(Operation::__BEGIN_PARAM, {});
     for (size_t i = 0; i < inst->args.size(); ++i) {
         auto x = inst->args[i].var;
-        assert(x);
-        if (x->isGlobal()) {
+        if (x == nullptr) {
+            gen(Operation::__SET_PARAM, {INT(inst->args[i].val), INT(i)});
+        } else if (x->isGlobal()) {
             auto vx = var2var[x];
             gen(Operation::__SET_PARAM, {GV(vx), INT(i)});
         } else if (x->isAddr()) {
@@ -168,16 +177,13 @@ void TgrEmitter::emitMoveInst(eyr::MoveInst *inst) {
     }
 }
 void TgrEmitter::emitStoreInst(eyr::StoreInst *inst) {
-    auto x = inst->base, y = inst->idx.var, z = inst->src.var;
-    assert(y && z);
-    auto rx = loadAddr(x), ry = loadVar(y), rz = loadVar(z);
+    auto rx = loadAddr(inst->base), ry = loadOpr(inst->idx), rz = loadOpr(inst->src);
     gen(Operation::BIN_ADD, {VR(rx), VR(rx), VR(ry)});
     gen(Operation::IDX_ST, {VR(rx), INT(0), VR(rz)});
 }
 void TgrEmitter::emitLoadInst(eyr::LoadInst *inst) {
-    auto x = inst->dst, y = inst->src, z = inst->idx.var;
-    assert(z);
-    auto ry = loadAddr(y), rz = loadVar(z);
+    auto x = inst->dst;
+    auto ry = loadAddr(inst->src), rz = loadOpr(inst->idx);
     gen(Operation::BIN_ADD, {VR(ry), VR(ry), VR(rz)});
     if (x->isLocal()) {
         auto rx = loadVar(x);
@@ -191,8 +197,7 @@ void TgrEmitter::emitLoadInst(eyr::LoadInst *inst) {
 void TgrEmitter::emitBranchInst(eyr::BranchInst *inst) {
     assert(inst->opt == eyr::BranchInst::LgcOp::NE);
     assert(inst->rhs.imm && inst->rhs.val == 0);
-    assert(!inst->lhs.imm);
-    auto rx = loadVar(inst->lhs.var);
+    auto rx = loadOpr(inst->lhs);
     gen(Operation::BR_NE, {
             VR(rx), PR(Reg::X0), BB(cur_func->blocks[inst->dst->f_idx]),
     });
@@ -204,8 +209,9 @@ void TgrEmitter::emitJumpInst(eyr::JumpInst *inst) {
 }
 void TgrEmitter::emitReturnInst(eyr::ReturnInst *inst) {
     auto x = inst->opr.var;
-    assert(x);
-    if (x->isGlobal()) {
+    if (x == nullptr) {
+        gen(Operation::__SET_RET, {INT(inst->opr.val)});
+    } else if (x->isGlobal()) {
         auto vx = var2var[x];
         gen(Operation::__SET_RET, {GV(vx)});
     } else if (x->isAddr()) {
@@ -274,6 +280,15 @@ void TgrEmitter::storeVar(const Operand &opr, eyr::Variable *x) {
 }
 void TgrEmitter::gen(Operation::Opt opt, std::array<Operand, 3> oprs) {
     cur_blk->addOp(opt, oprs);
+}
+int TgrEmitter::loadOpr(eyr::Operand opr) {
+    if (opr.imm) {
+        auto rt = allocVR();
+        gen(Operation::MOV, {VR(rt), INT(opr.val)});
+        return rt;
+    } else {
+        return loadVar(opr.var);
+    }
 }
 
 }
