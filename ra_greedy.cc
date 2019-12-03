@@ -57,7 +57,7 @@ void RAGreedy::runOnBlock(BasicBlock *blk) {
     cur_blk = blk;
 
     live_vrs.clear(), vr2pr.clear(), pr2vr.clear();
-    in_slt_vr = blk->live_in;
+    in_frm_vr = blk->live_in;
     liveAnalyze();
     cur_op = cur_blk->ops.empty() ? nullptr : cur_blk->ops.front();
     while (cur_op) {
@@ -80,6 +80,8 @@ void RAGreedy::runOnOperation(Operation *op) {
         handleSetRet(op);
     } else if (opt == Operation::__GET_RET) {
         handleGetRet(op);
+    } else if (opt == Operation::CALL) {
+        handleCall(op);
     } else {
         handleOthers(op);
     }
@@ -129,13 +131,13 @@ int RAGreedy::getFrmSlt(int vr) {
     return it->second;
 }
 void RAGreedy::enterFrame(int vr) {
-    in_slt_vr.insert(vr);
+    in_frm_vr.insert(vr);
 }
 void RAGreedy::leaveFrame(int vr) {
-    in_slt_vr.erase(vr);
+    in_frm_vr.erase(vr);
 }
 bool RAGreedy::isInFrame(int vr) {
-    return in_slt_vr.count(vr) > 0;
+    return in_frm_vr.count(vr) > 0;
 }
 void RAGreedy::liveAnalyze() {
     live_vrs.clear();
@@ -257,8 +259,7 @@ void RAGreedy::handleMov(Operation *op) {
     }
 }
 void RAGreedy::handleBeginParam(Operation *op) {
-    for (auto pr : CallerSavedRegs())
-        unlink(pr);
+    arg_prs.clear();
     removeAndStepIn();
 }
 void RAGreedy::handleSetParam(Operation *op) {
@@ -267,8 +268,8 @@ void RAGreedy::handleSetParam(Operation *op) {
     auto src = oprs[0];
     assert(dst.tag == Operand::INTEGER);
     auto ai = I2R(dst.val.integer + R2I(Reg::A0));
-    unlink(ai);
     moveOpr2PhyReg(src, ai);
+    arg_prs.insert(ai);
     removeAndStepIn();
 }
 void RAGreedy::handleGetParam(Operation *op) {
@@ -306,13 +307,19 @@ void RAGreedy::moveOpr2PhyReg(const Operand &src, Reg ai) {
     if (src.tag == Operand::VIR_REG) {
         auto vr = src.val.vir_reg;
         if (isInPhyReg(vr)) {
-            genBefore(Operation::MOV, {PR(ai), PR(getPhyReg(vr))});
+            auto pr = getPhyReg(vr);
+            if (pr != ai) {
+                unlink(ai);
+                genBefore(Operation::MOV, {PR(ai), PR(pr)});
+            }
         } else {
             assert(isInFrame(vr));
             auto fs = getFrmSlt(vr);
+            unlink(ai);
             genBefore(Operation::LOAD, {FS(fs), PR(ai)});
         }
     } else if (src.tag == Operand::GLB_VAR) {
+        unlink(ai);
         auto gv = src.val.glb_var;
         if (gv->width > 0) {
             genBefore(Operation::LOAD_ADDR, {GV(gv), PR(ai)});
@@ -320,9 +327,11 @@ void RAGreedy::moveOpr2PhyReg(const Operand &src, Reg ai) {
             genBefore(Operation::LOAD, {GV(gv), PR(ai)});
         }
     } else if (src.tag == Operand::FRM_SLT) {
+        unlink(ai);
         auto fs = src.val.frm_slt;
         genBefore(Operation::LOAD_ADDR, {FS(fs), PR(ai)});
     } else if (src.tag == Operand::INTEGER) {
+        unlink(ai);
         genBefore(Operation::MOV, {PR(ai), src});
     } else {
         assert(false);
@@ -374,6 +383,13 @@ void RAGreedy::saveCalleeSavedRegs() {
             exit->addOp(Operation::LOAD, {FS(slt), PR(pr)});
         }
     }
+}
+void RAGreedy::handleCall(Operation *op) {
+    for (auto pr: CallerSavedRegs()) {
+        if (arg_prs.count(pr) == 0)
+            unlink(pr);
+    }
+    handleOthers(op);
 }
 
 } // namespace tgr
