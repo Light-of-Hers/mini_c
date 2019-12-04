@@ -5,7 +5,6 @@
 #include "ra_greedy.hh"
 #include "tgr.hh"
 #include <algorithm>
-#include <cstdlib>
 #include <functional>
 
 namespace mc {
@@ -86,18 +85,18 @@ void RAGreedy::runOnOperation(Operation *op) {
         handleOthers(op);
     }
 }
-void RAGreedy::link(int r, Reg p) {
+void RAGreedy::bind(int r, Reg p) {
     refPhyRegs(r).insert(p);
     refVirRegs(p).insert(r);
 }
-void RAGreedy::unlink(int r) {
+void RAGreedy::unbind(int r) {
     leaveFrame(r);
     auto &my_prs = refPhyRegs(r);
     for (auto pr : my_prs)
         refVirRegs(pr).erase(r);
     my_prs.clear();
 }
-void RAGreedy::unlink(Reg p) {
+void RAGreedy::unbind(Reg p) {
     auto &my_vrs = refVirRegs(p);
     for (auto r : my_vrs) {
         auto &my_prs = refPhyRegs(r);
@@ -176,10 +175,10 @@ void RAGreedy::allocPhyRegsFor(Operation *op) {
             assert(isInFrame(vr));
             auto pr = findPhyRegBeyond(uses);
             auto slt = getFrmSlt(vr);
-            unlink(pr);
+            unbind(pr);
             genBefore(Operation::LOAD, {FS(slt), PR(pr)});
             taint_regs.insert(pr);
-            link(vr, pr);
+            bind(vr, pr);
             op->rewrite(vr, pr);
         } else {
             auto pr = getPhyReg(vr);
@@ -188,9 +187,9 @@ void RAGreedy::allocPhyRegsFor(Operation *op) {
     }
     for (auto vr : defs) {
         auto pr = isInPhyReg(vr) ? getPhyReg(vr) : findPhyRegBeyond(defs);
-        unlink(vr);
-        unlink(pr);
-        link(vr, pr);
+        unbind(vr);
+        unbind(pr);
+        bind(vr, pr);
         op->rewrite(vr, pr);
         taint_regs.insert(pr);
     }
@@ -224,7 +223,6 @@ Reg RAGreedy::getPhyReg(int vr) {
     return *refPhyRegs(vr).begin();
 }
 void RAGreedy::removeAndStepIn() {
-    // FIXME: BUG
     auto op = cur_op;
     cur_op = op->next();
     cur_blk->removeOp(op);
@@ -242,17 +240,17 @@ void RAGreedy::handleMov(Operation *op) {
             assert(isInFrame(r2));
             auto p2 = findPhyRegBeyond({r2});
             auto slt = getFrmSlt(r2);
-            unlink(p2);
+            unbind(p2);
             genBefore(Operation::LOAD, {FS(slt), PR(p2)});
             taint_regs.insert(p2);
-            link(r2, p2);
+            bind(r2, p2);
 
-            unlink(r1), link(r1, p2);
+            unbind(r1), bind(r1, p2);
         } else {
             auto p2 = getPhyReg(r2);
             if (!(isInPhyReg(r1) && getPhyReg(r1) == p2)) {
-                unlink(r1);
-                link(r1, p2);
+                unbind(r1);
+                bind(r1, p2);
             }
         }
         removeAndStepIn();
@@ -279,20 +277,20 @@ void RAGreedy::handleGetParam(Operation *op) {
     auto ai = I2R(src.val.integer + R2I(Reg::A0));
     assert(dst.tag == Operand::VIR_REG);
     auto vr = dst.val.vir_reg;
-    link(vr, ai);
+    bind(vr, ai);
     removeAndStepIn();
 }
 void RAGreedy::handleGetRet(Operation *op) {
     auto dst = op->oprs[0];
     assert(dst.tag == Operand::VIR_REG);
     auto vr = dst.val.vir_reg;
-    unlink(vr);
-    link(vr, Reg::A0);
+    unbind(vr);
+    bind(vr, Reg::A0);
     removeAndStepIn();
 }
 void RAGreedy::handleSetRet(Operation *op) {
     auto src = op->oprs[0];
-    unlink(Reg::A0);
+    unbind(Reg::A0);
     moveOpr2PhyReg(src, Reg::A0);
     genBefore(Operation::JUMP, {BB(cur_exit)});
     cur_blk->jump(cur_exit);
@@ -309,17 +307,17 @@ void RAGreedy::moveOpr2PhyReg(const Operand &src, Reg ai) {
         if (isInPhyReg(vr)) {
             auto pr = getPhyReg(vr);
             if (pr != ai) {
-                unlink(ai);
+                unbind(ai);
                 genBefore(Operation::MOV, {PR(ai), PR(pr)});
             }
         } else {
             assert(isInFrame(vr));
             auto fs = getFrmSlt(vr);
-            unlink(ai);
+            unbind(ai);
             genBefore(Operation::LOAD, {FS(fs), PR(ai)});
         }
     } else if (src.tag == Operand::GLB_VAR) {
-        unlink(ai);
+        unbind(ai);
         auto gv = src.val.glb_var;
         if (gv->width > 0) {
             genBefore(Operation::LOAD_ADDR, {GV(gv), PR(ai)});
@@ -327,11 +325,11 @@ void RAGreedy::moveOpr2PhyReg(const Operand &src, Reg ai) {
             genBefore(Operation::LOAD, {GV(gv), PR(ai)});
         }
     } else if (src.tag == Operand::FRM_SLT) {
-        unlink(ai);
+        unbind(ai);
         auto fs = src.val.frm_slt;
         genBefore(Operation::LOAD_ADDR, {FS(fs), PR(ai)});
     } else if (src.tag == Operand::INTEGER) {
-        unlink(ai);
+        unbind(ai);
         genBefore(Operation::MOV, {PR(ai), src});
     } else {
         assert(false);
@@ -385,10 +383,8 @@ void RAGreedy::saveCalleeSavedRegs() {
     }
 }
 void RAGreedy::handleCall(Operation *op) {
-    for (auto pr: CallerSavedRegs()) {
-        if (arg_prs.count(pr) == 0)
-            unlink(pr);
-    }
+    for (auto pr: CallerSavedRegs())
+        unbind(pr);
     handleOthers(op);
 }
 

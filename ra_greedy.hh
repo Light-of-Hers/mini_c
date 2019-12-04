@@ -59,9 +59,9 @@ private:
     bool isInPhyReg(int vr);
 
     bool isOccupied(Reg pr);
-    void link(int r, Reg p);
-    void unlink(int r);
-    void unlink(Reg p);
+    void bind(int r, Reg p);
+    void unbind(int r);
+    void unbind(Reg p);
     void spill(int r, Reg p);
     void genAfter(Operation::Opt opt, std::array<Operand, 3> oprs);
     void genBefore(Operation::Opt opt, std::array<Operand, 3> oprs);
