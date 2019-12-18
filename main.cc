@@ -1,14 +1,14 @@
 #include "ast.hh"
 #include "config.hh"
 #include "eyr_emitter.hh"
-#include "type_checker.hh"
-#include "tgr_emitter.hh"
 #include "live_analyzer.hh"
 #include "ra_greedy.hh"
+#include "riscv_printer.hh"
+#include "tgr_emitter.hh"
+#include "type_checker.hh"
 #include <cstdio>
-#include <iostream>
 #include <fstream>
-
+#include <iostream>
 
 extern int yyparse();
 
@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
 
     freopen("./debug.log", "w", stderr);
     std::ofstream eyr_out("./output_eeyore"), ftgr_out("./output_ftigger"),
-            tgr_out("./output_tigger");
+            tgr_out("./output_tigger"), riscv_out("./output_riscv");
 
     if (argc > 1)
         yyin = fopen(argv[1], "r");
@@ -57,5 +57,10 @@ int main(int argc, char **argv) {
     tgr::RAGreedy greedy;
     greedy.allocate(tmod);
     tgr_out << *tmod << std::endl;
-    std::cout << *tmod << std::endl;
+
+    tgr::RiscvPrinter rp(riscv_out);
+    rp.printModule(tmod);
+
+    tgr::RiscvPrinter rp1(std::cout);
+    rp1.printModule(tmod);
 }

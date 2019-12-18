@@ -127,7 +127,7 @@ struct Operation {
             : opt(opt), oprs(opr), def_bits({false}) {}
     inline bool isBinOp() const { return opt >= BIN_EQ && opt <= BIN_REM; }
     inline bool isUnOp() const { return opt >= UN_NEG && opt <= UN_NOT; }
-    inline bool isBranch() const { return opt >= BR_EQ && opt <= BR_AND; }
+    inline bool isBrOp() const { return opt >= BR_EQ && opt <= BR_AND; }
     Operation *prev();
     Operation *next();
     void addBefore(Operation *op);

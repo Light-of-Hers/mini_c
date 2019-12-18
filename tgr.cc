@@ -100,7 +100,7 @@ std::ostream &operator<<(std::ostream &os, const Operation &op) {
         os << op.oprs[0] << " = ";
         os << UnaryExpr::OpStr[static_cast<int>(op.opt)];
         os << op.oprs[1];
-    } else if (op.isBranch()) {
+    } else if (op.isBrOp()) {
         os << "if " << op.oprs[0] << " ";
         os << BinaryExpr::OpStr[static_cast<int>(op.opt - Operation::BR_EQ + Operation::BIN_EQ)]
            << " ";

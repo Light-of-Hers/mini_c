@@ -150,8 +150,6 @@ void EyrEmitter::visit(RefExpr *ast) {
             assert(base != nullptr);
             e->accept(*this);
             auto ret = cur_opr;
-//            auto bs = allocTemp();
-//            cur_blk->addInst(new MoveInst(cur_blk, bs, Operand(base->byteSize())));
             cur_blk->addInst(new BinaryInst(cur_blk, tmp_off, BinaryInst::BinOp::MUL, ret,
                                             Operand(base->byteSize())));
             cur_blk->addInst(
@@ -194,9 +192,6 @@ void EyrEmitter::visit(CallExpr *ast) {
     cur_opr = Operand(ret_var);
 }
 void EyrEmitter::visit(NumExpr *ast) {
-//    auto tmp = allocTemp();
-//    cur_blk->addInst(new MoveInst(cur_blk, tmp, Operand(ast->get_num())));
-//    cur_opr = Operand(tmp);
     cur_opr = Operand(ast->get_num());
 }
 Module *EyrEmitter::emit(const Program &prog) {

@@ -8,3 +8,10 @@ cmake-build-debug/
 *.log
 *.tar
 CMakeLists.txt
+eeyore
+tiggerC
+riscv32C
+riscv64C
+scanner.cc
+parser.cc
+parser.hh
