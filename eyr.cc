@@ -96,12 +96,8 @@ void Function::arrangeBlock() {
     blocks = tmp_blocks;
 
     int f_bid = 0;
-    int f_iid = 0;
     for (auto b : blocks) {
         b->f_idx = f_bid++;
-        int b_iid = 0;
-        for (auto i: b->insts)
-            i->f_idx = f_iid++, i->b_idx = b_iid++;
     }
 }
 
@@ -163,6 +159,33 @@ std::vector<BasicBlock *> BasicBlock::inBlocks() const {
     for (auto b: jump_in)
         res.push_back(b);
     return res;
+}
+void BasicBlock::addInst(Instruction *i) {
+    i->link = insts.insert(insts.end(), i);
+    i->block = this;
+}
+void BasicBlock::removeInst(Instruction *i) {
+    insts.erase(i->link);
+    i->block = nullptr;
+}
+Instruction *BasicBlock::prevInstOf(Instruction *i) {
+    auto it = i->link;
+    if (it != insts.begin())
+        return *(--it);
+    return nullptr;
+}
+Instruction *BasicBlock::nextInstOf(Instruction *i) {
+    auto it = i->link;
+    if (++it != insts.end())
+        return *it;
+    return nullptr;
+}
+void BasicBlock::addInstAfter(Instruction *pos, Instruction *i) {
+    auto it = pos->link;
+    insts.insert(++it, i);
+}
+void BasicBlock::addInstBefore(Instruction *pos, Instruction *i) {
+    insts.insert(pos->link, i);
 }
 
 std::ostream &Variable::print(std::ostream &os) const {

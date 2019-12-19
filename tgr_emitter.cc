@@ -36,7 +36,7 @@ Module *TgrEmitter::emit(eyr::Module *e_mod) {
     return cur_mod;
 }
 void TgrEmitter::runOnGlobalVar(eyr::Variable *e_var) {
-    assert(e_var->isGlobal());
+    assert(e_var->is_global());
     auto var = allocGV(e_var->width);
     cur_mod->addVar(var);
     var2var[e_var] = var;
@@ -109,7 +109,7 @@ void TgrEmitter::emitBinaryInst(eyr::BinaryInst *inst) {
     } else {
         oz = VR(loadOpr((inst->rhs)));
     }
-    if (x->isGlobal()) {
+    if (x->is_global()) {
         auto r1 = allocVR();
         gen(opt, {VR(r1), oy, oz});
         storeVar(VR(r1), x);
@@ -123,7 +123,7 @@ void TgrEmitter::emitUnaryInst(eyr::UnaryInst *inst) {
     auto opt = static_cast<Operation::Opt>(inst->opt);
     auto x = inst->dst;
     auto ry = loadOpr(inst->opr);
-    if (x->isGlobal()) {
+    if (x->is_global()) {
         auto r1 = allocVR();
         gen(opt, {VR(r1), VR(ry)});
         storeVar(VR(r1), x);
@@ -139,10 +139,10 @@ void TgrEmitter::emitCallInst(eyr::CallInst *inst) {
         auto x = inst->args[i].var;
         if (x == nullptr) {
             gen(Operation::__SET_PARAM, {INT(inst->args[i].val), INT(i)});
-        } else if (x->isGlobal()) {
+        } else if (x->is_global()) {
             auto vx = var2var[x];
             gen(Operation::__SET_PARAM, {GV(vx), INT(i)});
-        } else if (x->isAddr()) {
+        } else if (x->is_addr()) {
             auto it = frm_slt.find(x);
             if (it == frm_slt.end())
                 it = frm_slt.insert({x, cur_func->extendFrame(x->width / 4)}).first;
@@ -155,7 +155,7 @@ void TgrEmitter::emitCallInst(eyr::CallInst *inst) {
     }
     gen(Operation::CALL, {Operand::FuncName(inst->name)});
     auto x = inst->dst;
-    assert(x->isLocal());
+    assert(x->is_local());
     auto rx = loadVar(x);
     gen(Operation::__GET_RET, {VR(rx)});
 }
@@ -166,9 +166,9 @@ void TgrEmitter::emitMoveInst(eyr::MoveInst *inst) {
         storeVar(INT(s.val), x);
     } else {
         auto y = s.var;
-        if (y->isLocal()) {
+        if (y->is_local()) {
             storeVar(VR(loadVar(y)), x);
-        } else if (x->isLocal()) {
+        } else if (x->is_local()) {
             auto rx = loadVar(x);
             gen(Operation::LOAD, {GV(var2var[y]), VR(rx)});
         } else {
@@ -185,7 +185,7 @@ void TgrEmitter::emitLoadInst(eyr::LoadInst *inst) {
     auto x = inst->dst;
     auto ry = loadAddr(inst->src), rz = loadOpr(inst->idx);
     gen(Operation::BIN_ADD, {VR(ry), VR(ry), VR(rz)});
-    if (x->isLocal()) {
+    if (x->is_local()) {
         auto rx = loadVar(x);
         gen(Operation::IDX_LD, {VR(rx), VR(ry), INT(0)});
     } else {
@@ -211,10 +211,10 @@ void TgrEmitter::emitReturnInst(eyr::ReturnInst *inst) {
     auto x = inst->opr.var;
     if (x == nullptr) {
         gen(Operation::__SET_RET, {INT(inst->opr.val)});
-    } else if (x->isGlobal()) {
+    } else if (x->is_global()) {
         auto vx = var2var[x];
         gen(Operation::__SET_RET, {GV(vx)});
-    } else if (x->isAddr()) {
+    } else if (x->is_addr()) {
         auto fx = loadAddr(x);
         gen(Operation::__SET_RET, {FS(fx)});
     } else {
@@ -230,7 +230,7 @@ Variable *TgrEmitter::allocGV(int width) {
     return var;
 }
 int TgrEmitter::loadVar(eyr::Variable *x) {
-    if (x->isGlobal()) {
+    if (x->is_global()) {
         auto rx = allocVR();
         gen(Operation::LOAD, {GV(var2var[x]), VR(rx)});
         return rx;
@@ -242,11 +242,11 @@ int TgrEmitter::loadVar(eyr::Variable *x) {
     }
 }
 int TgrEmitter::loadAddr(eyr::Variable *x) {
-    if (x->isGlobal()) {
+    if (x->is_global()) {
         auto rx = allocVR();
         gen(Operation::LOAD_ADDR, {GV(var2var[x]), VR(rx)});
         return rx;
-    } else if (x->isParam()) {
+    } else if (x->is_param()) {
         auto rx = loadVar(x);
         auto rt = allocVR();
         gen(Operation::MOV, {VR(rt), VR(rx)});
@@ -262,7 +262,7 @@ int TgrEmitter::loadAddr(eyr::Variable *x) {
     }
 }
 void TgrEmitter::storeVar(const Operand &opr, eyr::Variable *x) {
-    if (x->isGlobal()) {
+    if (x->is_global()) {
         auto rx = allocVR();
         gen(Operation::LOAD_ADDR, {GV(var2var[x]), VR(rx)});
         if (opr.tag == Operand::INTEGER) {

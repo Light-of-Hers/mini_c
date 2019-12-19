@@ -174,13 +174,13 @@ Operand Operand::BscBlk(BasicBlock *b) {
     return Operand(b);
 }
 Operand Operand::VirReg(int r) {
-    return Operand(VIR_REG, r);
+    return {VIR_REG, r};
 }
 Operand Operand::FrmSlt(int f) {
-    return Operand(FRM_SLT, f);
+    return {FRM_SLT, f};
 }
 Operand Operand::Integer(int i) {
-    return Operand(INTEGER, i);
+    return {INTEGER, i};
 }
 Operand Operand::FuncName(const std::string &name) {
     return Operand(name);
@@ -231,7 +231,7 @@ void BasicBlock::addOp(Operation *op) {
     op->block = this;
 }
 void BasicBlock::addOp(Operation::Opt opt, std::array<Operand, 3> opr) {
-    addOp(new Operation(opt, std::move(opr)));
+    addOp(new Operation(opt, opr));
 }
 Operation *BasicBlock::prevOpOf(Operation *op) {
     auto it = op->link;

@@ -96,29 +96,35 @@ struct BasicBlock : public Item {
     std::vector<BasicBlock *> outBlocks() const;
     std::vector<BasicBlock *> inBlocks() const;
 
-    inline void addInst(Instruction *i) { insts.push_back(i); }
+    Instruction *prevInstOf(Instruction *i);
+    Instruction *nextInstOf(Instruction *i);
+    void addInstAfter(Instruction *pos, Instruction *i);
+    void addInstBefore(Instruction *pos, Instruction *i);
+    void addInst(Instruction *i);
+    void removeInst(Instruction *i);
+
     std::ostream &print(std::ostream &os) const override;
 };
 
 struct Variable : public Item {
     Function *func;
     std::string name;
-    bool is_temp;
+    bool temp;
     int width;
-    bool is_addr;
+    bool addr;
 
     std::vector<Instruction *> defers;
     std::vector<Instruction *> users;
 
     Variable(Function *f, std::string n, bool tmp = true, int w = 0, bool c = false) :
-            func(f), name(std::move(n)), is_temp(tmp), width(w), is_addr(c) {}
+            func(f), name(std::move(n)), temp(tmp), width(w), addr(c) {}
     std::ostream &print(std::ostream &os) const override;
 
-    inline bool isGlobal() const { return func == nullptr; }
-    inline bool isParam() const { return name[0] == 'p'; }
-    inline bool isLocal() const { return !isGlobal(); }
-    inline bool isAddr() const { return is_addr; }
-    inline bool isTemp() const { return is_temp; }
+    inline bool is_global() const { return func == nullptr; }
+    inline bool is_param() const { return name[0] == 'p'; }
+    inline bool is_local() const { return !is_global(); }
+    inline bool is_addr() const { return addr; }
+    inline bool is_temp() const { return temp; }
 };
 
 struct Operand {
@@ -137,16 +143,12 @@ struct Operand {
 };
 
 struct Instruction : public Item {
-    BasicBlock *block;
-    int b_idx{0}; // in-block idx
-    int f_idx{0}; // in-function idx
+    BasicBlock *block{nullptr};
+    std::list<Instruction *>::iterator link;
 
     std::vector<Variable *> uses;
     std::vector<Variable *> defs;
 
-    int ra_id{0}; // for reg-alloc
-
-    explicit Instruction(BasicBlock *b) : block(b) {}
     inline void use(Operand opr) {
         if (!opr.imm)
             use(opr.var);
@@ -155,12 +157,17 @@ struct Instruction : public Item {
         var->users.push_back(this);
         this->uses.push_back(var);
     }
+    inline void addAfter(Instruction *i) { block->addInstAfter(this, i); }
+    inline void addBefore(Instruction *i) { block->addInstBefore(this, i); }
+    inline Instruction *prev() { return block->prevInstOf(this); }
+    inline Instruction *next() { return block->nextInstOf(this); }
+    inline void remove() { block->removeInst(this); }
 };
 
 struct AssignInst : public Instruction {
     Variable *dst;
 
-    AssignInst(BasicBlock *b, Variable *d) : Instruction(b), dst(d) {
+    explicit AssignInst(Variable *d) : dst(d) {
         d->defers.push_back(this);
         defs.push_back(d);
     }
@@ -173,8 +180,8 @@ struct BinaryInst : public AssignInst {
     BinOp opt;
     Operand lhs, rhs;
 
-    BinaryInst(BasicBlock *b, Variable *d, BinOp op, Operand l, Operand r) :
-            AssignInst(b, d), opt(op), lhs(l), rhs(r) {
+    BinaryInst(Variable *d, BinOp op, Operand l, Operand r) :
+            AssignInst(d), opt(op), lhs(l), rhs(r) {
         use(l), use(r);
     }
     std::ostream &print(std::ostream &os) const override;
@@ -187,8 +194,8 @@ struct UnaryInst : public AssignInst {
     UnOp opt;
     Operand opr;
 
-    UnaryInst(BasicBlock *b, Variable *d, UnOp op, Operand o) :
-            AssignInst(b, d), opt(op), opr(o) {
+    UnaryInst(Variable *d, UnOp op, Operand o) :
+            AssignInst(d), opt(op), opr(o) {
         use(o);
     }
     std::ostream &print(std::ostream &os) const override;
@@ -198,8 +205,8 @@ struct CallInst : public AssignInst {
     std::string name;
     std::vector<Operand> args;
 
-    CallInst(BasicBlock *b, Variable *d, std::string n, std::vector<Operand> a) :
-            AssignInst(b, d), name(std::move(n)), args(std::move(a)) {
+    CallInst(Variable *d, std::string n, std::vector<Operand> a) :
+            AssignInst(d), name(std::move(n)), args(std::move(a)) {
         for (auto arg: args)
             use(arg);
     }
@@ -209,7 +216,7 @@ struct CallInst : public AssignInst {
 struct MoveInst : public AssignInst {
     Operand src;
 
-    MoveInst(BasicBlock *b, Variable *d, Operand s) : AssignInst(b, d), src(s) {
+    MoveInst(Variable *d, Operand s) : AssignInst(d), src(s) {
         use(s);
     }
     std::ostream &print(std::ostream &os) const override;
@@ -220,8 +227,8 @@ struct StoreInst : public Instruction {
     Operand idx;
     Operand src;
 
-    StoreInst(BasicBlock *b, Variable *bs, Operand i, Operand s) :
-            Instruction(b), base(bs), idx(i), src(s) {
+    StoreInst(Variable *bs, Operand i, Operand s) :
+            base(bs), idx(i), src(s) {
         use(i), use(s);
     }
     std::ostream &print(std::ostream &os) const override;
@@ -231,8 +238,8 @@ struct LoadInst : public AssignInst {
     Variable *src;
     Operand idx;
 
-    LoadInst(BasicBlock *b, Variable *d, Variable *s, Operand i) :
-            AssignInst(b, d), src(s), idx(i) {
+    LoadInst(Variable *d, Variable *s, Operand i) :
+            AssignInst(d), src(s), idx(i) {
         use(i);
     }
     std::ostream &print(std::ostream &os) const override;
@@ -241,7 +248,7 @@ struct LoadInst : public AssignInst {
 struct JumpInst : public Instruction {
     BasicBlock *dst;
 
-    JumpInst(BasicBlock *b, BasicBlock *d) : Instruction(b), dst(d) {}
+    explicit JumpInst(BasicBlock *d) : dst(d) {}
     std::ostream &print(std::ostream &os) const override;
 };
 
@@ -252,8 +259,8 @@ struct BranchInst : public JumpInst {
     LgcOp opt;
     Operand lhs, rhs;
 
-    BranchInst(BasicBlock *b, BasicBlock *d, LgcOp op, Operand l, Operand r) :
-            JumpInst(b, d), opt(op), lhs(l), rhs(r) {
+    BranchInst(BasicBlock *d, LgcOp op, Operand l, Operand r) :
+            JumpInst(d), opt(op), lhs(l), rhs(r) {
         use(l), use(r);
     }
     std::ostream &print(std::ostream &os) const override;
@@ -262,7 +269,7 @@ struct BranchInst : public JumpInst {
 struct ReturnInst : public Instruction {
     Operand opr;
 
-    ReturnInst(BasicBlock *b, Operand o) : Instruction(b), opr(o) {
+    explicit ReturnInst(Operand o) : opr(o) {
         use(o);
     }
     std::ostream &print(std::ostream &os) const override;
