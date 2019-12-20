@@ -242,6 +242,10 @@ std::vector<Variable *> CallInst::uses() const {
         if (!arg.imm)
             res.push_back(arg.var);
     }
+    for (auto var: block->func->module->global_vars) {
+        if (!var->is_addr())
+            res.push_back(var);
+    }
     return res;
 }
 

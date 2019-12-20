@@ -144,6 +144,7 @@ void EyrOptimizer::ConstFolder::handle(CallInst *ins) {
         if (vc.first->is_global())
             cur_consts[vc.first] = {};
     }
+    cur_consts[ins->dst] = {};
 }
 void EyrOptimizer::ConstFolder::handle(MoveInst *ins) {
     if (isConst(ins->src)) {
@@ -264,7 +265,7 @@ void EyrOptimizer::Simplifier::runOnFunction(Function *fun) {
         work_list.erase(it);
         runOnBlock(blk);
     }
-    
+
     rewrite = true;
     for (auto blk: fun->blocks) {
         runOnBlock(blk);
@@ -278,9 +279,17 @@ void EyrOptimizer::Simplifier::runOnBlock(BasicBlock *blk) {
             runOnInstruction(cur_ins);
     } else {
         cur_lives.clear();
-        for (auto outb: blk->outBlocks()) {
-            for (auto var: in_lives[outb])
-                cur_lives.insert(var);
+        auto out_blks = blk->outBlocks();
+        if (out_blks.empty()) { // 返回块
+            for (auto var: blk->func->module->global_vars) {
+                if (!var->is_addr())
+                    cur_lives.insert(var);
+            }
+        } else {
+            for (auto outb: out_blks) {
+                for (auto var: in_lives[outb])
+                    cur_lives.insert(var);
+            }
         }
         out_lives[blk] = cur_lives;
         for (auto var: live_kill[blk])
@@ -333,7 +342,7 @@ void EyrOptimizer::Simplifier::updateLives(Instruction *ins) {
         cur_lives.insert(use);
 }
 void EyrOptimizer::Simplifier::handle(AssignInst *ins) {
-    if (ins->dst->is_local() && cur_lives.count(ins->dst) == 0) {
+    if (cur_lives.count(ins->dst) == 0) {
         ins->remove();
         changed = true;
     } else {
