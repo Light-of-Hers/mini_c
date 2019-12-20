@@ -85,11 +85,19 @@ struct BasicBlock : public Item {
     explicit BasicBlock(Function *f) : func(f) {}
     inline void fall(BasicBlock *b) {
         fall_out = b, b->fall_in = this;
-        debug(this->label, " fall to ", b->label);
+        // debug(this->label, " fall to ", b->label);
     }
     inline void jump(BasicBlock *b) {
         jump_out = b, b->jump_in.insert(this);
-        debug(this->label, " jump to ", b->label);
+        // debug(this->label, " jump to ", b->label);
+    }
+    inline void unfall() {
+        if (fall_out)
+            fall_out->fall_in = nullptr, fall_out = nullptr;
+    }
+    inline void unjump() {
+        if (jump_out)
+            jump_out->jump_in.erase(this), jump_out = nullptr;
     }
 
     void safeRemove();
@@ -112,9 +120,6 @@ struct Variable : public Item {
     bool temp;
     int width;
     bool addr;
-
-    std::vector<Instruction *> defers;
-    std::vector<Instruction *> users;
 
     Variable(Function *f, std::string n, bool tmp = true, int w = 0, bool c = false) :
             func(f), name(std::move(n)), temp(tmp), width(w), addr(c) {}
@@ -146,31 +151,25 @@ struct Instruction : public Item {
     BasicBlock *block{nullptr};
     std::list<Instruction *>::iterator link;
 
-    std::vector<Variable *> uses;
-    std::vector<Variable *> defs;
+    virtual std::vector<Variable *> uses() const { return {}; }
+    virtual std::vector<Variable *> defs() const { return {}; }
 
-    inline void use(Operand opr) {
-        if (!opr.imm)
-            use(opr.var);
+    inline Instruction *addAfter(Instruction *i) {
+        return assert(block), block->addInstAfter(this, i), i;
     }
-    inline void use(Variable *var) {
-        var->users.push_back(this);
-        this->uses.push_back(var);
+    inline Instruction *addBefore(Instruction *i) {
+        return assert(block), block->addInstBefore(this, i), i;
     }
-    inline void addAfter(Instruction *i) { block->addInstAfter(this, i); }
-    inline void addBefore(Instruction *i) { block->addInstBefore(this, i); }
-    inline Instruction *prev() { return block->prevInstOf(this); }
-    inline Instruction *next() { return block->nextInstOf(this); }
-    inline void remove() { block->removeInst(this); }
+    inline Instruction *prev() { return assert(block), block->prevInstOf(this); }
+    inline Instruction *next() { return assert(block), block->nextInstOf(this); }
+    inline void remove() { assert(block), block->removeInst(this); }
 };
 
 struct AssignInst : public Instruction {
     Variable *dst;
 
-    explicit AssignInst(Variable *d) : dst(d) {
-        d->defers.push_back(this);
-        defs.push_back(d);
-    }
+    explicit AssignInst(Variable *d) : dst(d) {}
+    std::vector<Variable *> defs() const override;
 };
 
 struct BinaryInst : public AssignInst {
@@ -181,9 +180,9 @@ struct BinaryInst : public AssignInst {
     Operand lhs, rhs;
 
     BinaryInst(Variable *d, BinOp op, Operand l, Operand r) :
-            AssignInst(d), opt(op), lhs(l), rhs(r) {
-        use(l), use(r);
-    }
+            AssignInst(d), opt(op), lhs(l), rhs(r) {}
+
+    std::vector<Variable *> uses() const override;
     std::ostream &print(std::ostream &os) const override;
 };
 
@@ -195,9 +194,8 @@ struct UnaryInst : public AssignInst {
     Operand opr;
 
     UnaryInst(Variable *d, UnOp op, Operand o) :
-            AssignInst(d), opt(op), opr(o) {
-        use(o);
-    }
+            AssignInst(d), opt(op), opr(o) {}
+    std::vector<Variable *> uses() const override;
     std::ostream &print(std::ostream &os) const override;
 };
 
@@ -206,19 +204,16 @@ struct CallInst : public AssignInst {
     std::vector<Operand> args;
 
     CallInst(Variable *d, std::string n, std::vector<Operand> a) :
-            AssignInst(d), name(std::move(n)), args(std::move(a)) {
-        for (auto arg: args)
-            use(arg);
-    }
+            AssignInst(d), name(std::move(n)), args(std::move(a)) {}
+    std::vector<Variable *> uses() const override;
     std::ostream &print(std::ostream &os) const override;
 };
 
 struct MoveInst : public AssignInst {
     Operand src;
 
-    MoveInst(Variable *d, Operand s) : AssignInst(d), src(s) {
-        use(s);
-    }
+    MoveInst(Variable *d, Operand s) : AssignInst(d), src(s) {}
+    std::vector<Variable *> uses() const override;
     std::ostream &print(std::ostream &os) const override;
 };
 
@@ -228,9 +223,8 @@ struct StoreInst : public Instruction {
     Operand src;
 
     StoreInst(Variable *bs, Operand i, Operand s) :
-            base(bs), idx(i), src(s) {
-        use(i), use(s);
-    }
+            base(bs), idx(i), src(s) {}
+    std::vector<Variable *> uses() const override;
     std::ostream &print(std::ostream &os) const override;
 };
 
@@ -239,9 +233,8 @@ struct LoadInst : public AssignInst {
     Operand idx;
 
     LoadInst(Variable *d, Variable *s, Operand i) :
-            AssignInst(d), src(s), idx(i) {
-        use(i);
-    }
+            AssignInst(d), src(s), idx(i) {}
+    std::vector<Variable *> uses() const override;
     std::ostream &print(std::ostream &os) const override;
 };
 
@@ -260,22 +253,20 @@ struct BranchInst : public JumpInst {
     Operand lhs, rhs;
 
     BranchInst(BasicBlock *d, LgcOp op, Operand l, Operand r) :
-            JumpInst(d), opt(op), lhs(l), rhs(r) {
-        use(l), use(r);
-    }
+            JumpInst(d), opt(op), lhs(l), rhs(r) {}
+    std::vector<Variable *> uses() const override;
     std::ostream &print(std::ostream &os) const override;
 };
 
 struct ReturnInst : public Instruction {
     Operand opr;
 
-    explicit ReturnInst(Operand o) : opr(o) {
-        use(o);
-    }
+    explicit ReturnInst(Operand o) : opr(o) {}
+    std::vector<Variable *> uses() const override;
     std::ostream &print(std::ostream &os) const override;
 };
 
-};
-};
+}
+}
 
 #endif

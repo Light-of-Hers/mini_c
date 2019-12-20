@@ -48,17 +48,17 @@ void LiveAnalyzer::globalAnalyze(Function *func) {
         }
     } while (!stop);
 
-    for (auto blk: func->blocks) {
-        std::cerr << blk->label << ": ";
-        std::cerr << "live-in[";
-        for (auto reg: blk->live_in)
-            std::cerr << reg << ", ";
-        std::cerr << "], ";
-        std::cerr << "live-out[";
-        for (auto reg: blk->live_out)
-            std::cerr << reg << ", ";
-        std::cerr << "]" << std::endl;
-    }
+//    for (auto blk: func->blocks) {
+//        std::cerr << blk->label << ": ";
+//        std::cerr << "live-in[";
+//        for (auto reg: blk->live_in)
+//            std::cerr << reg << ", ";
+//        std::cerr << "], ";
+//        std::cerr << "live-out[";
+//        for (auto reg: blk->live_out)
+//            std::cerr << reg << ", ";
+//        std::cerr << "]" << std::endl;
+//    }
 }
 
 

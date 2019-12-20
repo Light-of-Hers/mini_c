@@ -165,27 +165,34 @@ void BasicBlock::addInst(Instruction *i) {
     i->block = this;
 }
 void BasicBlock::removeInst(Instruction *i) {
+    assert(i->block == this);
     insts.erase(i->link);
     i->block = nullptr;
 }
 Instruction *BasicBlock::prevInstOf(Instruction *i) {
+    assert(i->block == this);
     auto it = i->link;
     if (it != insts.begin())
         return *(--it);
     return nullptr;
 }
 Instruction *BasicBlock::nextInstOf(Instruction *i) {
+    assert(i->block == this);
     auto it = i->link;
     if (++it != insts.end())
         return *it;
     return nullptr;
 }
 void BasicBlock::addInstAfter(Instruction *pos, Instruction *i) {
+    assert(pos->block == this);
+    i->block = this;
     auto it = pos->link;
-    insts.insert(++it, i);
+    i->link = insts.insert(++it, i);
 }
 void BasicBlock::addInstBefore(Instruction *pos, Instruction *i) {
-    insts.insert(pos->link, i);
+    assert(pos->block == this);
+    i->block = this;
+    i->link = insts.insert(pos->link, i);
 }
 
 std::ostream &Variable::print(std::ostream &os) const {
@@ -203,11 +210,24 @@ std::ostream &BinaryInst::print(std::ostream &os) const {
     os << lhs << ' ' << BinaryExpr::OpStr[static_cast<int>(opt)] << ' ' << rhs << std::endl;
     return os;
 }
+std::vector<Variable *> BinaryInst::uses() const {
+    auto res = AssignInst::uses();
+    if (!lhs.imm)
+        res.push_back(lhs.var);
+    if (!rhs.imm)
+        res.push_back(rhs.var);
+    return res;
+}
 
 std::ostream &UnaryInst::print(std::ostream &os) const {
     os << '\t' << dst->name << " = ";
     os << UnaryExpr::OpStr[static_cast<int>(opt)] << ' ' << opr << std::endl;
     return os;
+}
+std::vector<Variable *> UnaryInst::uses() const {
+    if (!opr.imm)
+        return {opr.var};
+    return {};
 }
 
 std::ostream &CallInst::print(std::ostream &os) const {
@@ -216,20 +236,46 @@ std::ostream &CallInst::print(std::ostream &os) const {
     os << '\t' << dst->name << " = call f_" << name << std::endl;
     return os;
 }
+std::vector<Variable *> CallInst::uses() const {
+    auto res = AssignInst::uses();
+    for (auto arg: args) {
+        if (!arg.imm)
+            res.push_back(arg.var);
+    }
+    return res;
+}
 
 std::ostream &MoveInst::print(std::ostream &os) const {
     os << '\t' << dst->name << " = " << src << std::endl;
     return os;
+}
+std::vector<Variable *> MoveInst::uses() const {
+    if (!src.imm)
+        return {src.var};
+    return {};
 }
 
 std::ostream &StoreInst::print(std::ostream &os) const {
     os << "\t" << base->name << '[' << idx << ']' << " = " << src << std::endl;
     return os;
 }
+std::vector<Variable *> StoreInst::uses() const {
+    auto res = Instruction::uses();
+    if (!src.imm)
+        res.push_back(src.var);
+    if (!idx.imm)
+        res.push_back(idx.var);
+    return res;
+}
 
 std::ostream &LoadInst::print(std::ostream &os) const {
     os << '\t' << dst->name << " = " << src->name << '[' << idx << ']' << std::endl;
     return os;
+}
+std::vector<Variable *> LoadInst::uses() const {
+    if (!idx.imm)
+        return {src, idx.var};
+    return {src};
 }
 
 std::ostream &JumpInst::print(std::ostream &os) const {
@@ -243,11 +289,27 @@ std::ostream &BranchInst::print(std::ostream &os) const {
     os << " goto l" << dst->label << std::endl;
     return os;
 }
+std::vector<Variable *> BranchInst::uses() const {
+    auto res = Instruction::uses();
+    if (!lhs.imm)
+        res.push_back(lhs.var);
+    if (!rhs.imm)
+        res.push_back(rhs.var);
+    return res;
+}
 
 std::ostream &ReturnInst::print(std::ostream &os) const {
     os << "\t" << "return " << opr << std::endl;
     return os;
 }
+std::vector<Variable *> ReturnInst::uses() const {
+    if (!opr.imm)
+        return {opr.var};
+    return {};
+}
 
+std::vector<Variable *> AssignInst::defs() const {
+    return {dst};
+}
 };
 };

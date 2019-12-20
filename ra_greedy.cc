@@ -65,7 +65,6 @@ void RAGreedy::runOnBlock(BasicBlock *blk) {
     saveRegsInBlockEnd();
 }
 void RAGreedy::runOnOperation(Operation *op) {
-    debugv(*op);
     auto opt = op->opt;
     if (opt == Operation::MOV) {
         handleMov(op);

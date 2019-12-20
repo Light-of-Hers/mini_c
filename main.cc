@@ -6,6 +6,7 @@
 #include "riscv_printer.hh"
 #include "tgr_emitter.hh"
 #include "type_checker.hh"
+#include "eyr_optimizer.hh"
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -26,8 +27,12 @@ int main(int argc, char **argv) {
     using namespace eyr;
 
     freopen("./debug.log", "w", stderr);
-    std::ofstream eyr_out("./output_eeyore"), ftgr_out("./output_ftigger"),
-            tgr_out("./output_tigger"), riscv_out("./output_riscv");
+    std::ofstream
+            eyr_out("./output_eeyore"),
+            opt_eyr_out("./output_opt_eeyore"),
+            ftgr_out("./output_ftigger"),
+            tgr_out("./output_tigger"),
+            riscv_out("./output_riscv");
 
     if (argc > 1)
         yyin = fopen(argv[1], "r");
@@ -49,6 +54,10 @@ int main(int argc, char **argv) {
     EyrEmitter emitter;
     auto mod = emitter.emit(*global_prog);
     eyr_out << *mod << std::endl;
+
+    EyrOptimizer e_opt;
+    e_opt.optimize(mod);
+    opt_eyr_out << *mod << std::endl;
 
     tgr::TgrEmitter te;
     auto tmod = te.emit(mod);
