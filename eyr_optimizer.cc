@@ -329,7 +329,6 @@ void EyrOptimizer::Simplifier::updateLives(Instruction *ins) {
 }
 void EyrOptimizer::Simplifier::handle(AssignInst *ins) {
     if (ins->dst->is_local() && cur_lives.count(ins->dst) == 0) {
-        updateLives(ins);
         ins->remove();
         changed = true;
     } else {
