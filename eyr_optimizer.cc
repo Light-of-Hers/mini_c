@@ -17,7 +17,9 @@ void EyrOptimizer::ConstFolder::runOnFunction(Function *fun) {
     in_consts.clear(), out_consts.clear();
     work_list.clear();
 
-    work_list.insert(fun->entry);
+    for (auto blk: fun->blocks)
+        work_list.insert(blk);
+
     rewrite = false;
     while (!work_list.empty()) {
         auto it = work_list.begin();
@@ -249,10 +251,12 @@ void EyrOptimizer::Simplifier::runOnFunction(Function *fun) {
         }
         live_gen[blk] = gen, live_kill[blk] = kill;
     }
+
     work_list.clear();
     for (auto blk: fun->blocks) {
         work_list.insert(blk);
     }
+
     rewrite = false;
     while (!work_list.empty()) {
         auto it = work_list.begin();
@@ -260,6 +264,7 @@ void EyrOptimizer::Simplifier::runOnFunction(Function *fun) {
         work_list.erase(it);
         runOnBlock(blk);
     }
+    
     rewrite = true;
     for (auto blk: fun->blocks) {
         runOnBlock(blk);
