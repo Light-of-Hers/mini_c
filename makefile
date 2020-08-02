@@ -18,7 +18,7 @@ YACCS	:= $(wildcard *.yacc *.y)
 
 TARGET	:= riscv64C
 
-LIBS	:= -lfl
+LIBS	:=
 
 RM		:= rm -rf
 
